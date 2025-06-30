@@ -1,0 +1,109 @@
+# MapTR Docker Build Optimization
+# This file excludes unnecessary files from Docker build context
+
+# === Version Control ===
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# === Python Cache and Compiled Files ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+
+# === IDE and Editor Files ===
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === Development and Testing ===
+.pytest_cache/
+.coverage
+.tox/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# === Documentation ===
+docs/
+*.md
+!README.md  # Keep README for reference
+
+# === Logs and Temporary Files ===
+*.log
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# === Model Weights and Data ===
+# Model weights should be mounted at runtime, not baked into image
+*.pth
+*.pkl
+*.pt
+*.bin
+*.safetensors
+data/
+datasets/
+checkpoints/
+weights/
+
+# === Output and Results ===
+outputs/
+results/
+experiments/
+logs/
+
+# === Configuration Overrides ===
+# Keep only essential configs, exclude local overrides
+local_config/
+configs/local/
+*.local.*
+
+# === Environment and Virtual Environment ===
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# === Jupyter Notebooks ===
+.ipynb_checkpoints/
+*.ipynb
+
+# === Docker Related ===
+.dockerignore
+docker-compose*.yml
+Dockerfile.*
+
+# === CI/CD ===
+.github/
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# === Backup Files ===
+*.bak
+*.backup
+*.orig
+
+# === System Files ===
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini

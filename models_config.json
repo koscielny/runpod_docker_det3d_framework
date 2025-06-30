@@ -1,0 +1,37 @@
+[
+    {
+        "name": "MapTR",
+        "image": "maptr-model:latest",
+        "config_path": "/app/MapTR/projects/configs/maptr/maptr_tiny_r50_24e.py",
+        "weight_file": "maptr_tiny_r50_24e.pth",
+        "inference_script": "/app/MapTR/inference.py"
+    },
+    {
+        "name": "PETR",
+        "image": "petr-model:latest",
+        "config_path": "/app/PETR/projects/configs/petr/petr_r50dcn_gridmask_p4.py",
+        "weight_file": "petr_r50dcn_gridmask_p4.pth",
+        "inference_script": "/app/PETR/inference.py"
+    },
+    {
+        "name": "StreamPETR",
+        "image": "streampetr-model:latest",
+        "config_path": "/app/StreamPETR/projects/configs/StreamPETR/stream_petr_r50_flash_800_bs2_seq_24e.py",
+        "weight_file": "stream_petr_r50_flash_800_bs2_seq_24e.pth",
+        "inference_script": "/app/StreamPETR/inference.py"
+    },
+    {
+        "name": "TopoMLP",
+        "image": "topomlp-model:latest",
+        "config_path": "/app/TopoMLP/projects/configs/topomlp_setA_r50_wo_yolov8.py",
+        "weight_file": "topomlp_setA_r50_wo_yolov8.pth",
+        "inference_script": "/app/TopoMLP/inference.py"
+    },
+    {
+        "name": "VAD",
+        "image": "vad-model:latest",
+        "config_path": "/app/VAD/projects/configs/VAD/VAD_tiny_stage_2.py",
+        "weight_file": "VAD_tiny_stage_2.pth",
+        "inference_script": "/app/VAD/inference.py"
+    }
+]

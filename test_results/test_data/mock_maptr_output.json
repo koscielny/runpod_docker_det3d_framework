@@ -1,0 +1,20 @@
+[
+    {
+        "id": 0,
+        "class_name": "divider",
+        "class_id": 0,
+        "confidence": 0.85,
+        "bbox": [10.2, 15.3, 25.7, 18.9],
+        "pts": [[10.5, 16.0], [11.2, 16.1], [12.0, 16.2]],
+        "num_pts": 20
+    },
+    {
+        "id": 1,
+        "class_name": "car",
+        "class_id": 1,
+        "confidence": 0.92,
+        "bbox": [20.1, 30.2, 35.5, 45.8],
+        "pts": [],
+        "num_pts": 0
+    }
+]
