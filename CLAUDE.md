@@ -2,7 +2,37 @@
 
 ## 🎯 Project Overview
 
-This repository provides a comprehensive Docker-based deployment framework for running multiple state-of-the-art 3D object detection and HD map construction models on RunPod cloud platform. The system is designed for easy model comparison, evaluation, and deployment in production environments.
+This repository provides two deployment approaches for running multiple state-of-the-art 3D object detection and HD map construction models on RunPod cloud platform:
+
+1. **🚀 NEW: Direct Installation Method** (推荐) - 直接在RunPod环境中安装和测试模型
+2. **🐳 Docker-based Method** - 使用Docker容器的传统方法
+
+## 📌 Quick Start (推荐方案)
+
+### 直接在RunPod中测试模型
+
+```bash
+# 1. 在RunPod中启动实例
+# 2. 下载设置脚本
+cd /workspace
+git clone https://github.com/your-repo/online_mapping.git
+cd online_mapping/runpod_docker
+
+# 3. 一键安装所有模型
+./setup_runpod_environment.sh
+
+# 4. 快速测试
+source /workspace/miniconda/bin/activate mapping_models
+/workspace/quick_test_models.sh
+```
+
+**详细使用指南**: 请查看 [`RUNPOD_SETUP_GUIDE.md`](./RUNPOD_SETUP_GUIDE.md)
+
+---
+
+## 🐳 Docker方案 (传统方法)
+
+The system is designed for easy model comparison, evaluation, and deployment in production environments.
 
 ### Supported Models
 - **MapTR**: Online vectorized HD map construction
