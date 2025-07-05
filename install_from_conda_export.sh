@@ -64,11 +64,44 @@ if [ -n "$PIP_PACKAGES" ]; then
     # Install one by one to avoid failure cascade
     for pkg in $PIP_PACKAGES; do
         echo "📦 Installing $pkg via pip..."
-        if pip install "$pkg" 2>/dev/null; then
-            echo "✅ Successfully installed $pkg via pip"
-        else
-            echo "❌ Failed to install $pkg"
-        fi
+        
+        # Handle version compatibility issues
+        pkg_name=$(echo "$pkg" | cut -d'=' -f1)
+        pkg_version=$(echo "$pkg" | cut -d'=' -f3)
+        
+        # Special handling for problematic packages
+        case $pkg_name in
+            "ortools")
+                # OR-Tools: Use latest compatible version instead of specific build
+                echo "🔧 OR-Tools detected, using latest compatible version..."
+                if pip install "ortools>=9.0,<10.0" 2>/dev/null; then
+                    echo "✅ Successfully installed $pkg_name via pip (latest compatible)"
+                else
+                    echo "❌ Failed to install $pkg_name"
+                fi
+                ;;
+            "tensorboard"|"tensorflow"|"torch"|"torchvision")
+                # ML packages: Try without specific version first
+                echo "🔧 ML package detected, trying flexible version..."
+                if pip install "$pkg_name" 2>/dev/null; then
+                    echo "✅ Successfully installed $pkg_name via pip (flexible version)"
+                elif pip install "$pkg" 2>/dev/null; then
+                    echo "✅ Successfully installed $pkg via pip (exact version)"
+                else
+                    echo "❌ Failed to install $pkg_name"
+                fi
+                ;;
+            *)
+                # Regular packages: Try exact version, then flexible
+                if pip install "$pkg" 2>/dev/null; then
+                    echo "✅ Successfully installed $pkg via pip"
+                elif pip install "$pkg_name" 2>/dev/null; then
+                    echo "✅ Successfully installed $pkg_name via pip (flexible version)"
+                else
+                    echo "❌ Failed to install $pkg_name"
+                fi
+                ;;
+        esac
     done
 fi
 

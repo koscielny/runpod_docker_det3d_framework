@@ -51,11 +51,22 @@ def parse_conda_line(line):
             'pip': None,  # Skip pip itself
         }
         
+        # Handle version compatibility issues
+        version_fixes = {
+            'ortools': 'ortools>=9.0,<10.0',  # Use compatible version range
+            'tensorboard': 'tensorboard',  # Use latest compatible
+            'tensorflow': 'tensorflow',  # Use latest compatible
+        }
+        
         if package_name in conda_to_pip_mapping:
             pip_name = conda_to_pip_mapping[package_name]
             if pip_name is None:
                 return None
             package_name = pip_name
+        
+        # Apply version fixes if needed
+        if package_name in version_fixes:
+            return version_fixes[package_name]
         
         if version:
             return f"{package_name}=={version}"

@@ -108,7 +108,7 @@ setup_base_environment() {
     
     # Create base conda environment
     print_status "INFO" "Creating base conda environment..."
-    conda create -n mapping_models python=3.8 -y
+    conda create -n mapping_models python=3.9 -y
     
     print_status "SUCCESS" "Base environment setup completed"
 }
