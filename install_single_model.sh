@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# 单个模型安装脚本 - 你提到的最简化方案
+# Host Deploy Tool - 单个模型安装脚本  
 # 用法: ./install_single_model.sh ModelName
 
 MODEL_NAME="$1"

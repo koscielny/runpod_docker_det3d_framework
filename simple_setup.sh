@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 极简RunPod模型安装脚本
-# 直接cd到各个模型目录执行相应的安装命令
+# Host Deploy Tool - 模型部署脚本
+# 支持在任意主机环境部署AI模型，直接cd到各个模型目录执行相应的安装命令
 
 set -e
 
@@ -9,8 +9,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 
-echo "🚀 Simple RunPod Model Setup"
-echo "=========================="
+echo "🚀 Host Deploy Tool - AI Model Setup"
+echo "====================================="
 
 # 显示配置信息
 print_config

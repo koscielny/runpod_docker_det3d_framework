@@ -12,7 +12,7 @@ your_project/                    # 可以在任意位置
 │   ├── config.sh               # 🔧 统一配置文件
 │   ├── simple_setup.sh         # 🚀 主安装脚本
 │   ├── install_single_model.sh # 🎯 单模型安装
-│   ├── tools/                  # 🔧 工具集合
+│   ├── host_deploy_tools/      # 🔧 主机部署工具集
 │   └── docs/                   # 📚 文档集合
 ├── MapTR/                      # 模型目录（自动克隆）
 ├── PETR/

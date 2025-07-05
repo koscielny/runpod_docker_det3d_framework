@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# 配置文件 - 统一管理路径和设置
-# 其他脚本通过source config.sh来获取配置
+# Host Deploy Tool - 配置文件
+# 统一管理部署路径和设置，其他脚本通过source config.sh来获取配置
 
 # 获取当前脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,7 +26,7 @@ fi
 CONDA_ENV_NAME="mapping_models"
 
 # 工具目录（相对于脚本目录）
-TOOLS_DIR="$SCRIPT_DIR/tools"
+TOOLS_DIR="$SCRIPT_DIR/host_deploy_tools"
 
 # 文档目录（相对于脚本目录）  
 DOCS_DIR="$SCRIPT_DIR/docs"
