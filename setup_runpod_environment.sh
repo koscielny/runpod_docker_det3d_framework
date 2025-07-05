@@ -205,8 +205,31 @@ setup_model() {
         "TopoMLP")
             print_status "INFO" "TopoMLP detected - using conda environment file strategy..."
             if [ -f "topomlp.yaml" ]; then
+                # Check if environment file contains problematic versions
+                if grep -q "ortools==9.2.9972\|python=3.8" topomlp.yaml; then
+                    print_status "ERROR" "TopoMLP environment file contains incompatible versions!"
+                    print_status "ERROR" "Found: ortools==9.2.9972 (doesn't exist) or python=3.8 (incompatible)"
+                    print_status "INFO" "Please run the fix script first:"
+                    print_status "INFO" "  $SCRIPT_DIR/force_recreate_topomlp_env.sh"
+                    print_status "INFO" "Or manually apply fixes as documented in TOPOMLP_FIX_MANUAL.md"
+                    return 1
+                fi
+                
                 print_status "INFO" "Found conda environment file, updating environment..."
-                conda env update -n mapping_models -f topomlp.yaml --prune
+                if conda env update -n mapping_models -f topomlp.yaml --prune; then
+                    print_status "SUCCESS" "TopoMLP conda environment updated successfully"
+                else
+                    print_status "ERROR" "Conda environment update failed"
+                    print_status "INFO" "Trying force recreation..."
+                    if [ -f "$SCRIPT_DIR/force_recreate_topomlp_env.sh" ]; then
+                        print_status "INFO" "Running force recreation script..."
+                        "$SCRIPT_DIR/force_recreate_topomlp_env.sh"
+                    else
+                        print_status "ERROR" "Force recreation script not found"
+                        print_status "INFO" "Manual intervention required - see TOPOMLP_FIX_MANUAL.md"
+                        return 1
+                    fi
+                fi
             elif [ -f "requirements.txt" ]; then
                 # Check if it's a conda export and handle appropriately
                 if head -10 requirements.txt | grep -q "_libgcc_mutex\|_openmp_mutex"; then
@@ -217,7 +240,7 @@ setup_model() {
                         rm -f "topomlp_pip_requirements.txt"
                     else
                         print_status "ERROR" "No conversion tool, installing essential packages..."
-                        pip install mmdet3d shapely networkx
+                        pip install mmdet3d shapely networkx ortools
                     fi
                 else
                     print_status "INFO" "Using pip requirements for TopoMLP..."
@@ -225,7 +248,7 @@ setup_model() {
                 fi
             fi
             # Install additional TopoMLP dependencies
-            pip install mmdet3d shapely networkx
+            pip install mmdet3d shapely networkx "ortools>=9.0,<10.0"
             ;;
         "MapTR"|"PETR"|"StreamPETR")
             print_status "INFO" "$model_name detected - using pip strategy (MMDetection ecosystem)..."
