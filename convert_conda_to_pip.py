@@ -56,6 +56,9 @@ def parse_conda_line(line):
             'ortools': 'ortools>=9.0,<10.0',  # Use compatible version range
             'tensorboard': 'tensorboard',  # Use latest compatible
             'tensorflow': 'tensorflow',  # Use latest compatible
+            'torch': 'torch==1.9.1',  # Remove CUDA suffix for compatibility
+            'torchvision': 'torchvision==0.10.1',  # Remove CUDA suffix
+            'torchaudio': 'torchaudio==0.9.1',  # Standard version
         }
         
         if package_name in conda_to_pip_mapping:
@@ -67,6 +70,18 @@ def parse_conda_line(line):
         # Apply version fixes if needed
         if package_name in version_fixes:
             return version_fixes[package_name]
+        
+        # Handle CUDA-specific package versions
+        if '+cu' in (version or ''):
+            base_name = package_name
+            clean_version = version.split('+')[0] if version else None
+            if base_name in version_fixes:
+                return version_fixes[base_name]
+            elif base_name in ['torch', 'torchvision', 'torchaudio']:
+                if clean_version:
+                    return f"{base_name}=={clean_version}"
+                else:
+                    return base_name
         
         if version:
             return f"{package_name}=={version}"
