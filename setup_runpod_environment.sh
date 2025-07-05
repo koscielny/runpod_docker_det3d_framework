@@ -175,36 +175,108 @@ setup_model() {
     # Activate conda environment
     source /workspace/miniconda/bin/activate mapping_models
     
-    # Install model-specific dependencies
-    if [ -f "requirements.txt" ]; then
-        print_status "INFO" "Installing $model_name requirements..."
-        pip install -r requirements.txt
-    fi
-    
-    # Setup model-specific configurations
+    # Install model-specific dependencies based on model type and optimal package manager
     case $model_name in
-        "MapTR")
-            # Install MapTR specific dependencies
-            pip install mmdet3d==1.0.0rc4
-            ;;
-        "PETR")
-            # Install PETR specific dependencies
-            pip install mmdet3d==1.0.0rc4
-            pip install nuscenes-devkit
-            ;;
-        "StreamPETR")
-            # Install StreamPETR specific dependencies
-            pip install mmdet3d==1.0.0rc4
-            pip install nuscenes-devkit
+        "VAD")
+            print_status "INFO" "VAD detected - using conda strategy for complex dependencies..."
+            if [ -f "requirements.txt" ]; then
+                # VAD has conda export file, use intelligent installer
+                if [ -f "$SCRIPT_DIR/install_from_conda_export.sh" ]; then
+                    print_status "INFO" "Using intelligent conda export installer for VAD..."
+                    "$SCRIPT_DIR/install_from_conda_export.sh" "requirements.txt" "mapping_models"
+                else
+                    print_status "WARNING" "Intelligent installer not found, using conversion method..."
+                    # Convert conda export to pip format
+                    if [ -f "$SCRIPT_DIR/convert_conda_to_pip.py" ]; then
+                        python3 "$SCRIPT_DIR/convert_conda_to_pip.py" "requirements.txt" "vad_pip_requirements.txt" 2>/dev/null || {
+                            print_status "ERROR" "Conversion failed, installing essential packages..."
+                            pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 mmdet3d==0.17.1 nuscenes-devkit plotly shapely
+                            return 0
+                        }
+                        pip install -r "vad_pip_requirements.txt"
+                        rm -f "vad_pip_requirements.txt"
+                    else
+                        print_status "ERROR" "No conversion tool found, installing essential packages..."
+                        pip install torch==1.9.1+cu111 torchvision==0.10.1+cu111 mmdet3d==0.17.1 nuscenes-devkit plotly shapely
+                    fi
+                fi
+            fi
             ;;
         "TopoMLP")
-            # Install TopoMLP specific dependencies
-            pip install mmdet3d==1.0.0rc4
+            print_status "INFO" "TopoMLP detected - using conda environment file strategy..."
+            if [ -f "topomlp.yaml" ]; then
+                print_status "INFO" "Found conda environment file, updating environment..."
+                conda env update -n mapping_models -f topomlp.yaml --prune
+            elif [ -f "requirements.txt" ]; then
+                # Check if it's a conda export and handle appropriately
+                if head -10 requirements.txt | grep -q "_libgcc_mutex\|_openmp_mutex"; then
+                    print_status "WARNING" "Conda export detected for TopoMLP, converting..."
+                    if [ -f "$SCRIPT_DIR/convert_conda_to_pip.py" ]; then
+                        python3 "$SCRIPT_DIR/convert_conda_to_pip.py" "requirements.txt" "topomlp_pip_requirements.txt"
+                        pip install -r "topomlp_pip_requirements.txt"
+                        rm -f "topomlp_pip_requirements.txt"
+                    else
+                        print_status "ERROR" "No conversion tool, installing essential packages..."
+                        pip install mmdet3d shapely networkx
+                    fi
+                else
+                    print_status "INFO" "Using pip requirements for TopoMLP..."
+                    pip install -r requirements.txt
+                fi
+            fi
+            # Install additional TopoMLP dependencies
+            pip install mmdet3d shapely networkx
             ;;
-        "VAD")
-            # Install VAD specific dependencies
-            pip install mmdet3d==1.0.0rc4
-            pip install nuscenes-devkit
+        "MapTR"|"PETR"|"StreamPETR")
+            print_status "INFO" "$model_name detected - using pip strategy (MMDetection ecosystem)..."
+            if [ -f "requirements.txt" ]; then
+                # Check if it's a conda export file and convert if needed
+                if head -5 requirements.txt | grep -q "# This file may be used to create an environment using:" || \
+                   head -10 requirements.txt | grep -q "_libgcc_mutex\|_openmp_mutex"; then
+                    print_status "WARNING" "$model_name has conda export file, converting to pip..."
+                    if [ -f "$SCRIPT_DIR/convert_conda_to_pip.py" ]; then
+                        python3 "$SCRIPT_DIR/convert_conda_to_pip.py" "requirements.txt" "temp_pip_requirements.txt" 2>/dev/null || {
+                            print_status "ERROR" "Conversion failed, installing essential packages..."
+                            pip install mmdet3d==1.0.0rc4 nuscenes-devkit
+                            return 0
+                        }
+                        pip install -r "temp_pip_requirements.txt"
+                        rm -f "temp_pip_requirements.txt"
+                    else
+                        print_status "ERROR" "No conversion tool, installing essential packages..."
+                        pip install mmdet3d==1.0.0rc4 nuscenes-devkit
+                    fi
+                else
+                    print_status "INFO" "Installing $model_name pip requirements..."
+                    pip install -r requirements.txt
+                fi
+            fi
+            
+            # Install model-specific MMDetection dependencies
+            case $model_name in
+                "MapTR")
+                    pip install mmdet3d==1.0.0rc4 shapely
+                    ;;
+                "PETR"|"StreamPETR")
+                    pip install mmdet3d==1.0.0rc4 nuscenes-devkit pyquaternion
+                    ;;
+            esac
+            ;;
+        *)
+            print_status "INFO" "Unknown model $model_name, using default pip strategy..."
+            if [ -f "requirements.txt" ]; then
+                # Check if it's a conda export and handle appropriately
+                if head -10 requirements.txt | grep -q "_libgcc_mutex\|_openmp_mutex"; then
+                    print_status "WARNING" "Conda export detected, converting..."
+                    if [ -f "$SCRIPT_DIR/convert_conda_to_pip.py" ]; then
+                        python3 "$SCRIPT_DIR/convert_conda_to_pip.py" "requirements.txt" "temp_requirements.txt"
+                        pip install -r "temp_requirements.txt"
+                        rm -f "temp_requirements.txt"
+                    fi
+                else
+                    pip install -r requirements.txt
+                fi
+            fi
             ;;
     esac
     
