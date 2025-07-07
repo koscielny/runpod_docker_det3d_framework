@@ -3,8 +3,8 @@
 # Python >= 3.8
 # CUDA == 11.1 (using closest available to required 11.2)
 # PyTorch == 1.9.0
-torch==1.9.0+cu111
-torchvision==0.10.0+cu111
+torch==1.9.0
+torchvision==0.10.0
 torchaudio==0.9.0
 
 # OpenMMLab ecosystem
