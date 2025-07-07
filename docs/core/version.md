@@ -1,5 +1,27 @@
 # 版本记录 - 多模型AI评测平台
 
+## 版本 1.0.1 - Docker路径修复 (2025-01-07)
+
+### 🔧 路径修复和优化
+- **Docker构建修复**: 修复了所有5个模型Dockerfile中的COPY路径问题
+- **工具集成**: 确保health_check.py等评测工具正确复制到容器中
+- **路径统一**: 更新了构建脚本和评测脚本中的容器内路径引用
+- **共享组件**: 统一使用`../shared/entrypoint_optimized.sh`路径
+
+### 📊 修复详情
+- **MapTR/PETR/StreamPETR**: 修复requirements.txt和inference.py的COPY路径
+- **TopoMLP/VAD**: 修复inference.py的COPY路径  
+- **评测工具**: 添加health_check.py和model_output_standard.py到所有容器
+- **脚本更新**: 修复quick_test.sh和run_model_evaluation.sh中的路径引用
+
+### 🎯 修复效果
+- ✅ Docker构建脚本现在能正确找到所有文件
+- ✅ 容器内工具路径映射正确
+- ✅ 评测系统路径引用准确
+- ✅ 为后续统一主入口脚本开发做好准备
+
+---
+
 ## 版本 1.0.0 - 基础框架完成 (2025-01-07)
 
 ### 🎯 里程碑
@@ -10,6 +32,12 @@
 
 ### 🏆 核心成就
 **实现了3个关键的中优先级功能**，保证项目复杂度较低的同时提供了最实用的模型比较能力：
+
+### 🔧 结构重组和路径修复 (2025-01-07)
+- **目录结构重组**: 清晰的功能模块划分和统一的脚本组织
+- **路径引用修复**: 修复了所有Docker构建脚本和容器内路径
+- **Dockerfile优化**: 更新了所有模型的Dockerfile中的COPY路径
+- **工具集成**: 确保评测工具正确复制到容器中
 
 #### 1. 标准化输出格式 (最实用，复杂度低)
 - **文件**: `claude_doc/model_output_standard.py`

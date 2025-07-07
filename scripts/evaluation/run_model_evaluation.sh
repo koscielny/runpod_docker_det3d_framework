@@ -130,7 +130,7 @@ run_health_checks() {
         
         # 运行健康检查
         if docker run --rm --gpus all -v "$OUTPUT_DIR:/output" "$image_name" \
-            python3 /app/tools/health_check.py --model "$model" --mode comprehensive > "$health_output" 2>&1; then
+            python3 /app/health_check.py --model "$model" --mode comprehensive > "$health_output" 2>&1; then
             info "✅ $model 健康检查完成"
         else
             warn "❌ $model 健康检查失败"

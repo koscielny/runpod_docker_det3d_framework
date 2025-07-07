@@ -8,10 +8,14 @@ WORKDIR /app
 RUN git clone https://github.com/koscielny/PETR_docker.git /app/PETR
 
 # 复制必要文件
-COPY PETR/requirements.txt /app/requirements.txt
-COPY PETR/inference.py /app/PETR/inference.py
+COPY requirements.txt /app/requirements.txt
+COPY inference.py /app/PETR/inference.py
 COPY gpu_utils.py /app/gpu_utils.py
-COPY entrypoint_optimized.sh /app/entrypoint.sh
+COPY ../shared/entrypoint_optimized.sh /app/entrypoint.sh
+
+# 复制评测工具
+COPY ../../tools/health_check.py /app/health_check.py
+COPY ../../tools/model_output_standard.py /app/model_output_standard.py
 
 # 设置执行权限
 RUN chmod +x /app/entrypoint.sh

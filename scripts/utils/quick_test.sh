@@ -63,7 +63,7 @@ fi
 
 # 4. 测试健康检查
 echo -n "🏥 测试健康检查... "
-if python3 "$SCRIPT_DIR/claude_doc/health_check.py" --model MapTR --mode check > /dev/null 2>&1; then
+if python3 "$SCRIPT_DIR/../tools/health_check.py" --model MapTR --mode check > /dev/null 2>&1; then
     echo "✅"
 else
     echo "❌"
@@ -72,9 +72,9 @@ fi
 
 # 5. 检查文档和工具
 echo -n "📚 检查文档和工具... "
-if [ -f "$SCRIPT_DIR/claude_doc/EVALUATION_GUIDE.md" ] && 
-   [ -f "$SCRIPT_DIR/claude_doc/DATASET_DOWNLOAD_GUIDE.md" ] &&
-   [ -f "$SCRIPT_DIR/claude_doc/IMPLEMENTATION_DETAILS.md" ]; then
+if [ -f "$SCRIPT_DIR/../docs/guides/evaluation_guide.md" ] && 
+   [ -f "$SCRIPT_DIR/../docs/guides/dataset_guide.md" ] &&
+   [ -f "$SCRIPT_DIR/../docs/technical/IMPLEMENTATION_DETAILS.md" ]; then
     echo "✅"
 else
     echo "❌"
