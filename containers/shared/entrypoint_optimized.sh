@@ -11,6 +11,12 @@ FIRST_RUN_FLAG="/tmp/.container_first_run"
 if [ ! -f "$FIRST_RUN_FLAG" ]; then
     echo "🚀 初始化RunPod容器..."
     
+    # 内存优化设置
+    echo "💾 配置内存优化..."
+    export PYTHONDONTWRITEBYTECODE=1  # 不生成.pyc文件
+    export PYTHONUNBUFFERED=1         # 不缓冲输出
+    export MALLOC_TRIM_THRESHOLD_=10000  # 更积极的内存回收
+    
     # 设置时区
     export TZ=${TZ:-UTC}
     
@@ -60,6 +66,22 @@ if [ ! -f "$FIRST_RUN_FLAG" ]; then
     # 显示容器信息
     echo "🎯 容器就绪: $(whoami)@$(hostname) - $(pwd)"
     echo "   Python: $(python --version 2>&1) | PyTorch: $(python -c 'import torch; print(torch.__version__)' 2>/dev/null || echo 'N/A') | CUDA: $(python -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'N/A')"
+    
+    # 内存状态检查
+    echo "💾 内存状态检查..."
+    if [ -f /app/tools/memory_optimizer.py ]; then
+        python /app/tools/memory_optimizer.py --report | grep -E "(系统内存|状态评估|快速解决方案)" || true
+    else
+        # 简单内存检查
+        MEMORY_INFO=$(free -h | awk 'NR==2{printf "%.1f%%, %s used, %s available", $3/$2*100, $3, $7}')
+        echo "   系统内存: $MEMORY_INFO"
+        
+        # 内存使用率检查
+        MEMORY_PCT=$(free | awk 'NR==2{printf "%.0f", $3/$2*100}')
+        if [ "$MEMORY_PCT" -gt 80 ]; then
+            echo "   ⚠️ 内存使用率较高 (${MEMORY_PCT}%), 建议运行: python /app/tools/memory_optimizer.py --cleanup"
+        fi
+    fi
     
     # 标记已完成初始化
     touch "$FIRST_RUN_FLAG"
