@@ -7,7 +7,8 @@ set -e
 DOCKER_HUB_USERNAME="iankaramazov"  # 设置你的Docker Hub用户名
 # 加载配置
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/config.sh"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+source "$PROJECT_ROOT/config/config.sh"
 
 # Docker Hub配置
 DOCKER_HUB_USERNAME="${DOCKER_HUB_USERNAME:-your-username}"  # 设置你的Docker Hub用户名
@@ -111,7 +112,7 @@ check_model_supported() {
 get_image_name() {
     local model="$1"
     local tag="${2:-latest}"
-    echo "${DOCKER_REGISTRY}/${DOCKER_HUB_USERNAME}/${DOCKER_HUB_REPO}:${model,,}-${tag}"
+    echo "${DOCKER_HUB_USERNAME}/${DOCKER_HUB_REPO}:${model,,}-${tag}"
 }
 
 # 构建单个模型
@@ -122,7 +123,7 @@ build_model() {
     
     check_model_supported "$model"
     
-    local model_dir="$SCRIPT_DIR/$model"
+    local model_dir="$PROJECT_ROOT/containers/models/$model"
     local image_name=$(get_image_name "$model" "$tag")
     
     print_step "构建 $model 模型镜像"
@@ -148,8 +149,8 @@ build_model() {
         build_args="$build_args --no-cache"
     fi
     
-    # 执行构建
-    if docker build $build_args -t "$image_name" -f "$model_dir/Dockerfile" "$model_dir"; then
+    # 执行构建 (使用项目根目录作为构建上下文)
+    if docker build $build_args -t "$image_name" -f "$model_dir/Dockerfile" "$PROJECT_ROOT"; then
         print_success "镜像构建成功: $image_name"
         echo ""
         echo "📊 镜像信息:"

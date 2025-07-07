@@ -12,7 +12,8 @@ fi
 
 MODEL_NAME=$1
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
-MODEL_DIR="$SCRIPT_DIR/../../containers/models/${MODEL_NAME}"
+PROJECT_ROOT="$SCRIPT_DIR/../.."
+MODEL_DIR="$PROJECT_ROOT/containers/models/${MODEL_NAME}"
 IMAGE_NAME="${MODEL_NAME,,}-model:latest" # 将模型名称转为小写并添加-model:latest后缀
 
 # 检查模型目录是否存在
@@ -31,11 +32,11 @@ echo "--------------------------------------------------"
 echo "正在为模型 '${MODEL_NAME}' 构建镜像..."
 echo "镜像名称: ${IMAGE_NAME}"
 echo "Dockerfile路径: ${MODEL_DIR}/Dockerfile"
-echo "构建上下文: ${MODEL_DIR}"
+echo "构建上下文: ${PROJECT_ROOT}"
 echo "--------------------------------------------------"
 
-# 执行 Docker build 命令
-docker build -t "${IMAGE_NAME}" -f "${MODEL_DIR}/Dockerfile" "${MODEL_DIR}"
+# 执行 Docker build 命令 (使用项目根目录作为构建上下文)
+docker build -t "${IMAGE_NAME}" -f "${MODEL_DIR}/Dockerfile" "${PROJECT_ROOT}"
 
 # 检查构建是否成功
 if [ $? -ne 0 ]; then

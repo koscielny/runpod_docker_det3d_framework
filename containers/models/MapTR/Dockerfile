@@ -8,13 +8,13 @@ WORKDIR /app
 RUN git clone https://github.com/koscielny/MapTR_docker.git /app/MapTR
 
 # 复制必要文件
-COPY inference.py /app/MapTR/inference.py
-COPY gpu_utils.py /app/gpu_utils.py
-COPY ../shared/entrypoint_optimized.sh /app/entrypoint.sh
+COPY containers/models/MapTR/inference.py /app/MapTR/inference.py
+COPY containers/models/MapTR/gpu_utils.py /app/gpu_utils.py
+COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
 
 # 复制评测工具
-COPY ../../tools/health_check.py /app/health_check.py
-COPY ../../tools/model_output_standard.py /app/model_output_standard.py
+COPY tools/health_check.py /app/health_check.py
+COPY tools/model_output_standard.py /app/model_output_standard.py
 
 # 设置执行权限
 RUN chmod +x /app/entrypoint.sh

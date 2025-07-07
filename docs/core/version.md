@@ -1,5 +1,44 @@
 # 版本记录 - 多模型AI评测平台
 
+## 版本 1.0.3 - Docker Hub模型发布 (2025-01-07)
+
+### 🐳 Docker Hub发布
+- **完整模型推送**: 成功构建并推送所有5个模型镜像到Docker Hub
+- **镜像优化**: 修复所有Dockerfile路径问题，统一构建流程
+- **命名规范**: 使用统一的镜像命名格式 `iankaramazov/ai-models:model-latest`
+- **部署就绪**: 所有模型镜像现已在Docker Hub可用
+
+### 📦 发布的模型镜像
+- **MapTR**: `iankaramazov/ai-models:maptr-latest` (13.9GB)
+- **PETR**: `iankaramazov/ai-models:petr-latest` (13.9GB)  
+- **StreamPETR**: `iankaramazov/ai-models:streampetr-latest` (13.9GB)
+- **TopoMLP**: `iankaramazov/ai-models:topomlp-latest` (14.4GB)
+- **VAD**: `iankaramazov/ai-models:vad-latest` (14.5GB)
+
+### 🔧 技术改进
+- **路径修复**: 统一所有Dockerfile中的COPY路径到项目根目录
+- **构建上下文**: 优化Docker构建上下文，确保所有文件正确复制
+- **工作流改进**: 完善docker_hub_workflow.sh脚本，支持批量构建和推送
+- **配置统一**: 修复配置文件加载路径问题
+
+### 🌐 RunPod部署
+现在可以在RunPod中直接使用已发布的Docker镜像：
+```bash
+# 例如部署MapTR模型
+docker run -d --gpus all --name maptr-container \
+  -p 8080:8080 -p 22:22 \
+  -v /workspace/data:/app/data \
+  iankaramazov/ai-models:maptr-latest
+```
+
+### 📊 发布统计
+- **镜像总数**: 5个模型镜像
+- **总大小**: ~70GB (所有镜像)
+- **Docker Hub链接**: https://hub.docker.com/r/iankaramazov/ai-models/tags
+- **构建时间**: 约20分钟（所有模型）
+
+---
+
 ## 版本 1.0.2 - 统一主入口脚本 (2025-01-07)
 
 ### 🚀 重大功能更新

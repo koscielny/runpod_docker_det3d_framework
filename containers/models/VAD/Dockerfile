@@ -25,12 +25,12 @@ RUN pip install --no-cache-dir \
     psutil
 
 # 复制必要文件
-COPY inference.py /app/VAD/inference.py
-COPY ../shared/entrypoint_optimized.sh /app/entrypoint.sh
+COPY containers/models/VAD/inference.py /app/VAD/inference.py
+COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
 
 # 复制评测工具
-COPY ../../tools/health_check.py /app/health_check.py
-COPY ../../tools/model_output_standard.py /app/model_output_standard.py
+COPY tools/health_check.py /app/health_check.py
+COPY tools/model_output_standard.py /app/model_output_standard.py
 
 # 设置执行权限
 RUN chmod +x /app/entrypoint.sh
