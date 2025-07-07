@@ -66,6 +66,7 @@ show_help() {
     echo "  test       单模型测试"
     echo "  compare    多模型比较"
     echo "  clean      清理资源"
+    echo "  check      依赖和健康检查"
     echo "  version    显示版本信息"
     echo "  help       显示帮助信息"
     echo ""
@@ -194,6 +195,24 @@ show_command_help() {
             echo "  - 清理未使用的Docker镜像"
             echo "  - 删除临时文件和缓存"
             echo "  - 重置环境状态"
+            ;;
+        check)
+            echo -e "${CYAN}check - 依赖和健康检查${NC}"
+            echo ""
+            echo "用法: $0 check [OPTIONS]"
+            echo ""
+            echo "选项:"
+            echo "  --quick        快速检查模式"
+            echo "  --full         完整依赖检查"
+            echo "  --json         JSON格式输出"
+            echo "  --model MODEL  指定模型检查"
+            echo ""
+            echo "功能:"
+            echo "  - 检查Python环境和依赖"
+            echo "  - 验证GPU和CUDA支持"
+            echo "  - 检查模型文件完整性"
+            echo "  - 系统资源状况分析"
+            echo "  - 运行基础功能测试"
             ;;
         *)
             error "未知命令: $command"
@@ -675,6 +694,87 @@ cmd_clean() {
     success "清理完成！"
 }
 
+# 依赖检查命令
+cmd_check() {
+    local quick=false
+    local full=false
+    local json=false
+    local model=""
+    
+    # 解析参数
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --quick)
+                quick=true
+                shift
+                ;;
+            --full)
+                full=true
+                shift
+                ;;
+            --json)
+                json=true
+                shift
+                ;;
+            --model)
+                model="$2"
+                check_model_supported "$model"
+                shift 2
+                ;;
+            -*) 
+                error "未知选项: $1"
+                show_command_help check
+                exit 1
+                ;;
+            *)
+                error "未知参数: $1"
+                show_command_help check
+                exit 1
+                ;;
+        esac
+    done
+    
+    header "依赖和健康检查"
+    
+    # 选择检查方式
+    if [[ "$quick" == "true" ]]; then
+        info "运行快速依赖检查..."
+        if [[ -f "$SCRIPT_DIR/scripts/utils/quick_dependency_check.sh" ]]; then
+            "$SCRIPT_DIR/scripts/utils/quick_dependency_check.sh"
+        else
+            warn "快速检查脚本不存在，使用详细检查..."
+            python "$SCRIPT_DIR/tools/dependency_checker.py" --quick
+        fi
+    elif [[ "$full" == "true" ]]; then
+        info "运行完整依赖检查..."
+        if [[ -f "$SCRIPT_DIR/tools/dependency_checker.py" ]]; then
+            local args=""
+            [[ -n "$model" ]] && args="$args --model $model"
+            [[ "$json" == "true" ]] && args="$args --json"
+            python "$SCRIPT_DIR/tools/dependency_checker.py" $args
+        else
+            error "依赖检查工具不存在"
+            exit 1
+        fi
+    else
+        # 默认运行快速检查
+        info "运行默认依赖检查（快速模式）..."
+        if [[ -f "$SCRIPT_DIR/scripts/utils/quick_dependency_check.sh" ]]; then
+            "$SCRIPT_DIR/scripts/utils/quick_dependency_check.sh"
+        elif [[ -f "$SCRIPT_DIR/tools/dependency_checker.py" ]]; then
+            python "$SCRIPT_DIR/tools/dependency_checker.py" --quick
+        else
+            warn "检查工具不可用，执行基础检查..."
+            echo "检查Python环境:"
+            python --version
+            echo "检查核心依赖:"
+            python -c "import torch, numpy; print('✅ 核心依赖正常')" 2>/dev/null || echo "❌ 核心依赖缺失"
+        fi
+    fi
+    
+    success "依赖检查完成！"
+}
+
 # 主函数
 main() {
     local command="${1:-help}"
@@ -707,6 +807,10 @@ main() {
         clean)
             shift
             cmd_clean "$@"
+            ;;
+        check)
+            shift
+            cmd_check "$@"
             ;;
         version)
             show_version

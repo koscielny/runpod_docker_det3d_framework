@@ -67,6 +67,18 @@ if [ ! -f "$FIRST_RUN_FLAG" ]; then
     echo "🎯 容器就绪: $(whoami)@$(hostname) - $(pwd)"
     echo "   Python: $(python --version 2>&1) | PyTorch: $(python -c 'import torch; print(torch.__version__)' 2>/dev/null || echo 'N/A') | CUDA: $(python -c 'import torch; print(torch.cuda.is_available())' 2>/dev/null || echo 'N/A')"
     
+    # 依赖检查
+    echo "🔍 运行依赖检查..."
+    if [ -f /app/scripts/utils/quick_dependency_check.sh ]; then
+        /app/scripts/utils/quick_dependency_check.sh || echo "⚠️ 依赖检查发现问题，请查看上方输出"
+    elif [ -f /app/tools/dependency_checker.py ]; then
+        python /app/tools/dependency_checker.py --quick || echo "⚠️ 依赖检查发现问题，建议运行: python /app/tools/dependency_checker.py"
+    else
+        # 基础检查
+        echo "   正在进行基础依赖检查..."
+        python -c "import torch, numpy, cv2; print('✅ 核心依赖正常')" 2>/dev/null || echo "❌ 核心依赖缺失"
+    fi
+    
     # 内存状态检查
     echo "💾 内存状态检查..."
     if [ -f /app/tools/memory_optimizer.py ]; then
