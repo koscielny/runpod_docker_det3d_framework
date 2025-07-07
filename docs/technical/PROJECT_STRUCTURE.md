@@ -16,6 +16,7 @@ runpod_docker/
 │   │   └── dataset_guide.md        # 数据集下载指南
 │   └── technical/                  # 技术文档
 │       ├── PROJECT_STRUCTURE.md    # 项目结构说明
+│       ├── DOCKER_NAMING_CONVENTIONS.md # Docker镜像命名规范
 │       └── IMPLEMENTATION_DETAILS.md # 实现细节
 │
 ├── 🛠️ scripts/                     # 统一脚本目录

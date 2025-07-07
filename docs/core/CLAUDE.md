@@ -116,7 +116,8 @@ python scripts/utils/validate_config.py --config /path/to/config.py --model MapT
 ### 技术文档
 - **EVALUATION_GUIDE.md**: 完整评测使用指南
 - **RUNPOD_SETUP_GUIDE.md**: RunPod部署指南
-- **SYSTEM_SUMMARY.md**: 项目完成总结
+- **DOCKER_NAMING_CONVENTIONS.md**: Docker镜像命名规范
+- **IMPLEMENTATION_DETAILS.md**: 实现技术细节
 
 ---
 

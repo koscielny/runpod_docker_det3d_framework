@@ -2,8 +2,20 @@
 
 欢迎使用RunPod多模型AI评测平台！这是一个基于Docker的多模型评测和比较系统，支持5个先进的3D检测和地图构建模型。
 
-## 🚀 快速开始
+## 🚀 快速开始 (统一入口)
 
+```bash
+# 🆕 使用统一主入口脚本 (推荐)
+./runpod_platform.sh setup          # 环境检查和初始化
+./runpod_platform.sh build all      # 构建所有模型镜像
+./runpod_platform.sh health         # 健康检查所有模型
+./runpod_platform.sh compare        # 多模型性能比较
+
+# 查看帮助
+./runpod_platform.sh help
+```
+
+### 传统方式 (仍然支持)
 ```bash
 # 1. 健康检查所有模型
 ./scripts/evaluation/run_model_evaluation.sh --health-check
@@ -56,12 +68,14 @@ runpod_docker/
 - [项目总览](docs/core/CLAUDE.md)
 
 ### 使用指南
+- [快速开始指南](docs/guides/QUICK_START_GUIDE.md) 🆕
 - [RunPod部署指南](docs/guides/RUNPOD_SETUP_GUIDE.md)
 - [评测使用指南](docs/guides/evaluation_guide.md)
 - [数据集指南](docs/guides/dataset_guide.md)
 
 ### 技术文档
 - [项目结构说明](docs/technical/PROJECT_STRUCTURE.md)
+- [Docker镜像命名规范](docs/technical/DOCKER_NAMING_CONVENTIONS.md)
 - [实现技术细节](docs/technical/IMPLEMENTATION_DETAILS.md)
 
 ## 🛠️ 主要功能
