@@ -92,7 +92,7 @@ test_output_standardization() {
     # 测试MapTR标准化
     python3 -c "
 import sys
-sys.path.append('$SCRIPT_DIR/claude_doc')
+sys.path.append('$SCRIPT_DIR/../tools')
 from model_output_standard import create_standardizer
 import json
 
@@ -129,7 +129,7 @@ print('✅ MapTR 标准化测试通过')
     # 测试PETR标准化
     python3 -c "
 import sys
-sys.path.append('$SCRIPT_DIR/claude_doc')
+sys.path.append('$SCRIPT_DIR/../tools')
 from model_output_standard import create_standardizer
 import json
 
@@ -170,7 +170,7 @@ test_model_comparison() {
     
     python3 -c "
 import sys
-sys.path.append('$SCRIPT_DIR/claude_doc')
+sys.path.append('$SCRIPT_DIR/../tools')
 from model_comparison import ModelComparator
 from model_output_standard import StandardOutput, ModelMetadata, Detection3D, VectorElement, BoundingBox3D
 import json
@@ -276,7 +276,7 @@ test_health_check() {
     log "测试健康检查功能..."
     
     # 测试基础健康检查
-    python3 "$SCRIPT_DIR/claude_doc/health_check.py" --model MapTR --mode check > "$TEST_DIR/health_test.json"
+    python3 "$SCRIPT_DIR/../tools/health_check.py" --model MapTR --mode check > "$TEST_DIR/health_test.json"
     
     # 验证输出
     if [ -f "$TEST_DIR/health_test.json" ]; then

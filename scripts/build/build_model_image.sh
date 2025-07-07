@@ -11,7 +11,8 @@ if [ "$#" -ne 1 ]; then
 fi
 
 MODEL_NAME=$1
-MODEL_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)/${MODEL_NAME}
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)
+MODEL_DIR="$SCRIPT_DIR/../../containers/models/${MODEL_NAME}"
 IMAGE_NAME="${MODEL_NAME,,}-model:latest" # 将模型名称转为小写并添加-model:latest后缀
 
 # 检查模型目录是否存在

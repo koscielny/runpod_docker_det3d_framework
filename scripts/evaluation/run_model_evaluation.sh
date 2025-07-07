@@ -102,9 +102,9 @@ setup_output_dirs() {
     mkdir -p "$OUTPUT_DIR"/{health_reports,model_outputs,comparison,logs}
     
     # 复制标准化和比较工具
-    cp "$SCRIPT_DIR/claude_doc/model_output_standard.py" "$OUTPUT_DIR/"
-    cp "$SCRIPT_DIR/claude_doc/model_comparison.py" "$OUTPUT_DIR/"
-    cp "$SCRIPT_DIR/claude_doc/health_check.py" "$OUTPUT_DIR/"
+    cp "$SCRIPT_DIR/../tools/model_output_standard.py" "$OUTPUT_DIR/"
+    cp "$SCRIPT_DIR/../tools/model_comparison.py" "$OUTPUT_DIR/"
+    cp "$SCRIPT_DIR/../tools/health_check.py" "$OUTPUT_DIR/"
     
     info "输出目录已创建: $OUTPUT_DIR"
 }
@@ -130,7 +130,7 @@ run_health_checks() {
         
         # 运行健康检查
         if docker run --rm --gpus all -v "$OUTPUT_DIR:/output" "$image_name" \
-            python3 /app/claude_doc/health_check.py --model "$model" --mode comprehensive > "$health_output" 2>&1; then
+            python3 /app/tools/health_check.py --model "$model" --mode comprehensive > "$health_output" 2>&1; then
             info "✅ $model 健康检查完成"
         else
             warn "❌ $model 健康检查失败"

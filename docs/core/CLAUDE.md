@@ -14,13 +14,13 @@
 ### 基本使用
 ```bash
 # 1. 健康检查所有模型
-./run_model_evaluation.sh --health-check
+./scripts/evaluation/run_model_evaluation.sh --health-check
 
 # 2. 完整评测流程
-./run_model_evaluation.sh --full-evaluation
+./scripts/evaluation/run_model_evaluation.sh --full-evaluation
 
 # 3. 单模型测试
-./run_model_evaluation.sh --single-model MapTR --data-path /data/sample.txt
+./scripts/evaluation/run_model_evaluation.sh --single-model MapTR --data-path /data/sample.txt
 ```
 
 ## 🏗️ 项目架构
@@ -45,19 +45,19 @@ runpod_docker/
 ### 1. 健康检查
 ```bash
 # 检查所有模型状态
-./run_model_evaluation.sh --health-check
+./scripts/evaluation/run_model_evaluation.sh --health-check
 
 # 系统快速验证
-./quick_test.sh
+./scripts/utils/quick_test.sh
 ```
 
 ### 2. 模型评测
 ```bash
 # 单模型推理
-./run_model_evaluation.sh --single-model MapTR --data-path /data/sample.txt
+./scripts/evaluation/run_model_evaluation.sh --single-model MapTR --data-path /data/sample.txt
 
 # 多模型比较
-./run_model_evaluation.sh --compare-models --models MapTR,PETR,VAD
+./scripts/evaluation/run_model_evaluation.sh --compare-models --models MapTR,PETR,VAD
 ```
 
 ### 3. 性能分析
@@ -99,10 +99,10 @@ runpod_docker/
 ### 配置管理
 ```bash
 # 列出可用配置
-./list_model_configs.sh
+./scripts/utils/list_model_configs.sh
 
 # 验证配置文件
-python validate_config.py --config /path/to/config.py --model MapTR
+python scripts/utils/validate_config.py --config /path/to/config.py --model MapTR
 ```
 
 ## 📚 核心文档

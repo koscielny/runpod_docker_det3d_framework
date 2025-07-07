@@ -6,7 +6,7 @@ import time
 
 # Get the directory where the script is located
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODELS_CONFIG_PATH = os.path.join(SCRIPT_DIR, "models_config.json")
+MODELS_CONFIG_PATH = os.path.join(SCRIPT_DIR, "../config/models_config.json")
 
 def run_inference_in_docker(
     model_name: str,

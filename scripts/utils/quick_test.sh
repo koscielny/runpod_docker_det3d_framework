@@ -25,7 +25,7 @@ fi
 echo -n "🐍 检查Python模块... "
 if python3 -c "
 import sys
-sys.path.append('$SCRIPT_DIR/claude_doc')
+sys.path.append('$SCRIPT_DIR/../tools')
 
 try:
     from model_output_standard import create_standardizer
@@ -46,7 +46,7 @@ fi
 echo -n "🔄 测试输出标准化... "
 if python3 -c "
 import sys
-sys.path.append('$SCRIPT_DIR/claude_doc')
+sys.path.append('$SCRIPT_DIR/../tools')
 from model_output_standard import create_standardizer
 
 standardizer = create_standardizer('MapTR')
