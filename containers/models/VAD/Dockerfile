@@ -1,39 +1,48 @@
-# VS Code Ready VAD Dockerfile (Simple Version)
-# 基于VS Code兼容的基础镜像
-FROM iankaramazov/ai-models:vscode-base
+# VAD Application Image
+# 基于vad-mmlibs添加VAD应用和配置
+FROM iankaramazov/ai-models:vad-mmlibs
 
-WORKDIR /app
-
-# 安装MMCV兼容当前PyTorch版本 (2.0.1)
-RUN pip install mmcv-full==1.7.0 -f https://download.openmmlab.com/mmcv/dist/cu117/torch2.0.0/index.html
-
-# 克隆VAD仓库（跳过mmdetection3d依赖）
+# 克隆VAD仓库
 RUN git clone https://github.com/koscielny/VAD_docker.git /app/VAD && \
     cd /app/VAD && \
     git checkout runpod/init
 
-# 安装核心依赖（跳过有问题的包）
-RUN pip install --no-cache-dir \
-    numpy \
-    opencv-python \
-    plotly \
-    scikit-image \
-    scikit-learn \
-    scipy \
-    shapely \
-    timm \
-    psutil
+# 复制VAD requirements并安装
+COPY containers/models/VAD/requirements_official.txt /tmp/vad_requirements.txt
+RUN pip install --no-cache-dir -r /tmp/vad_requirements.txt
 
-# 复制必要文件
+# 复制模型特定文件
 COPY containers/models/VAD/inference.py /app/VAD/inference.py
+
+# 复制共享脚本
 COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
 
-# 复制评测工具
-COPY tools/health_check.py /app/health_check.py
-COPY tools/model_output_standard.py /app/model_output_standard.py
+# 复制核心配置文件
+COPY config/ /app/config/
 
-# 设置执行权限
+# 复制完整的scripts目录
+COPY scripts/ /app/scripts/
+
+# 复制工具目录
+COPY tools/ /app/tools/
+
+# 复制统一主入口
+COPY runpod_platform.sh /app/runpod_platform.sh
+
+# 复制数据集管理脚本
+COPY datasets/ /app/datasets/
+
+# 复制测试数据
+COPY tests/test_results/test_data/ /app/test_data/
+
+# 复制文档目录
+COPY docs/ /app/docs/
+
+# 设置权限
 RUN chmod +x /app/entrypoint.sh
+
+# 创建便捷别名
+RUN echo 'alias vad="cd /app/VAD && python inference.py"' >> /root/.bashrc
 
 # 工作目录设置为模型目录
 WORKDIR /app/VAD
@@ -43,6 +52,3 @@ EXPOSE 22
 
 # 设置入口点
 ENTRYPOINT ["/app/entrypoint.sh"]
-
-# 默认保持容器运行 (无CMD，让entrypoint处理)
-# CMD []

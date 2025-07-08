@@ -1,31 +1,29 @@
 # VS Code Server兼容的基础镜像
-# 使用更新的PyTorch镜像以获得更新的GLIBC
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel
+# 使用RunPod优化的镜像获得更好的JupyterLab支持
+FROM runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04
 
 # 设置环境变量
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
+ENV PYTHONPATH=/usr/local/bin:/usr/bin:/bin
+ENV PATH=/usr/local/bin:/usr/bin:/bin:$PATH
 
-# 安装系统依赖和VS Code Server所需的库
+# 安装VS Code Server额外依赖（避免重复安装RunPod已有的包）
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # 基础系统工具
+    # 基础系统工具（RunPod已有git, wget, curl, bash）
     build-essential \
-    git \
-    wget \
-    curl \
     sudo \
     nano \
     htop \
     ca-certificates \
-    # SSH服务器
-    openssh-server \
+    # SSH服务器（RunPod已有openssh-server，检查版本）
     # VS Code Server系统依赖
     libc6 \
     libgcc1 \
     libstdc++6 \
     libatomic1 \
     # VS Code Server GUI依赖
-    libicu66 \
+    libicu70 \
     libx11-6 \
     libxcomposite1 \
     libxcursor1 \
@@ -41,10 +39,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libdrm2 \
     libxkbfile1 \
     libgbm1 \
-    # OpenGL支持
+    # OpenGL支持（RunPod已有libgl1）
     libgl1-mesa-glx \
     libsm6 \
-    libxrender1 \
     # 压缩工具
     tar \
     gzip \
@@ -71,18 +68,26 @@ RUN echo 'Port 22' >> /etc/ssh/sshd_config && \
 # 设置root密码
 RUN echo 'root:runpod123' | chpasswd
 
-# 安装Python相关工具和Jupyter Lab
+# 确保Python链接正确（RunPod使用/usr/bin/python3）
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/local/bin/pip /usr/bin/pip && \
+    ln -sf /usr/local/bin/pip3 /usr/bin/pip3
+
+# 验证Python环境
+RUN python --version && python3 --version && pip --version
+
+# 卸载默认PyTorch以便各模型安装特定版本
+RUN pip uninstall -y torch torchvision torchaudio
+
+# 安装额外Python包（RunPod已有jupyterlab, ipywidgets, notebook）
 RUN pip install --no-cache-dir \
     psutil \
-    jupyterlab \
-    ipywidgets \
     matplotlib \
     seaborn \
     pandas \
     numpy \
     plotly \
-    ipykernel \
-    notebook
+    ipykernel
 
 # 添加VS Code Server兼容标识
 RUN echo "VS_CODE_SERVER_COMPATIBLE=true" >> /etc/environment && \

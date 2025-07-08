@@ -1,0 +1,23 @@
+# Jupyter Lab Development Environment
+# 基于vscode添加Jupyter Lab和科学计算环境
+FROM iankaramazov/ai-models:vscode
+
+# 安装Jupyter Lab和基础Python科学计算包
+RUN pip install --no-cache-dir \
+    jupyterlab \
+    ipywidgets \
+    notebook \
+    psutil \
+    matplotlib \
+    seaborn \
+    pandas \
+    plotly \
+    ipykernel \
+    numpy \
+    pillow
+
+# 暴露SSH和Jupyter端口
+EXPOSE 22 8888
+
+# 设置工作目录
+WORKDIR /app

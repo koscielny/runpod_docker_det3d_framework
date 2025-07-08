@@ -189,12 +189,41 @@ done
 ./runpod_platform.sh clean --logs
 ```
 
+## 🐳 RunPod容器内使用
+
+当您SSH进入RunPod容器时，可以使用预配置的便捷别名和工具：
+
+### 立即可用的别名
+```bash
+platform status        # 系统状态检查  
+health-check           # 健康诊断
+quick-test            # 快速依赖验证
+model-compare         # 模型性能比较
+```
+
+### 完整工具库
+```bash
+# 全面检查工具
+python /app/tools/dependency_checker.py    # 依赖检查
+python /app/tools/memory_optimizer.py      # 内存优化  
+python /app/tools/health_check.py          # 健康监控
+
+# 管理脚本
+/app/scripts/utils/quick_test.sh           # 快速测试
+/app/scripts/evaluation/run_model_evaluation.sh  # 评测脚本
+```
+
+**详细说明**: 查看 [容器内工具指南](CONTAINER_TOOLS_GUIDE.md) 🔥
+
 ## 🎯 下一步
 
-- 查看 [评测使用指南](evaluation_guide.md) 了解详细评测功能
-- 查看 [Docker镜像命名规范](../technical/DOCKER_NAMING_CONVENTIONS.md) 了解镜像管理
-- 查看 [RunPod部署指南](RUNPOD_SETUP_GUIDE.md) 了解云端部署
+- 🔥 [容器内工具指南](CONTAINER_TOOLS_GUIDE.md) - 完整工具和别名使用手册 **推荐**
+- [评测使用指南](evaluation_guide.md) - 了解详细评测功能
+- [Docker镜像命名规范](../technical/DOCKER_NAMING_CONVENTIONS.md) - 了解镜像管理
+- [RunPod部署指南](RUNPOD_SETUP_GUIDE.md) - 了解云端部署
 
 ---
 
-**提示**: 运行 `./runpod_platform.sh help [command]` 随时获取命令帮助！
+**提示**: 
+- 本地开发：运行 `./runpod_platform.sh help [command]` 获取命令帮助
+- RunPod容器内：运行 `platform help` 或查看 `/app/docs/guides/CONTAINER_TOOLS_GUIDE.md`

@@ -1,0 +1,48 @@
+# Pure PyTorch + CUDA + Python 3.7 Base Image
+# 纯净的PyTorch CUDA基础环境，不包含任何应用层依赖
+FROM pytorch/pytorch:1.9.1-cuda11.1-cudnn8-devel
+
+# 设置基础环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# 修复CUDA GPG密钥问题
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub || true
+
+# 安装Python 3.7和CUDA开发工具
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.7 \
+    python3.7-dev \
+    python3.7-distutils \
+    build-essential \
+    cmake \
+    ninja-build \
+    curl \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1 \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 设置完整的CUDA环境变量
+ENV CUDA_HOME=/usr/local/cuda-11.1
+ENV PATH=${CUDA_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+ENV CUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}
+ENV CUDA_TOOLKIT_ROOT=${CUDA_HOME}
+ENV CUDACXX=${CUDA_HOME}/bin/nvcc
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV PYTHONPATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin
+ENV PATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin:$PATH
+
+# 重新安装pip for Python 3.7
+RUN curl https://bootstrap.pypa.io/pip/3.7/get-pip.py -o get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
+
+# 验证环境
+RUN python --version && python3 --version && \
+    nvcc --version
+
+# 设置工作目录
+WORKDIR /app

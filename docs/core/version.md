@@ -1,5 +1,93 @@
 # 版本记录 - 多模型AI评测平台
 
+## 版本 1.0.5 - 完整工具集成版 (2025-01-07)
+
+### 🔧 重大功能升级：完全自包含的Docker镜像
+- **完整集成**: 将所有核心目录集成到Docker镜像中，实现真正的自包含部署
+- **远程友好**: 完美适配RunPod等远程环境，无需额外文件传输或挂载
+- **开箱即用**: SSH进入容器即可使用所有平台功能
+
+### 📦 集成的完整组件
+- **config/**: 核心配置文件和模型配置 (config.sh, models_config.json)
+- **scripts/**: 完整的脚本体系 (build/, evaluation/, setup/, utils/)
+- **tools/**: 评测和监控工具 (health_check.py, model_comparison.py等)
+- **runpod_platform.sh**: 统一主入口脚本
+- **datasets/**: 数据集管理脚本
+- **test_data/**: 测试数据和样本文件
+
+### 🎯 便捷使用体验
+在RunPod容器中可直接使用的命令别名：
+```bash
+platform            # 统一平台管理
+quick-test          # 快速系统测试
+health-check        # 健康检查
+model-compare       # 模型性能比较
+```
+
+### 🛣️ 环境变量和PATH设置
+- **PATH集成**: `/app/scripts/utils:/app/scripts/evaluation:/app/tools`
+- **权限配置**: 所有脚本自动设置执行权限
+- **便捷访问**: 支持在容器任意位置调用工具
+
+### 📊 镜像规格
+- **MapTR**: `iankaramazov/ai-models:maptr-latest` - 完整工具集成 ✅
+- **PETR**: `iankaramazov/ai-models:petr-latest` - 完整工具集成 ✅
+- **StreamPETR**: `iankaramazov/ai-models:streampetr-latest` - 完整工具集成 ✅
+- **TopoMLP**: `iankaramazov/ai-models:topomlp-latest` - 完整工具集成 ✅
+- **VAD**: `iankaramazov/ai-models:vad-latest` - 完整工具集成 ✅
+
+### 🚀 用户收益
+- **部署简化**: 从"镜像+外部文件" → "单一自包含镜像" (100%简化)
+- **远程体验**: 完美支持RunPod等云环境，无需额外配置
+- **开发效率**: 容器内直接开发调试，工具触手可及
+- **一致性**: 所有环境使用完全相同的工具版本
+
+### 💡 技术实现
+- **Docker层优化**: 合理利用层缓存，最小化重建时间
+- **路径修复**: 修正测试数据路径为`tests/test_results/test_data/`
+- **权限管理**: 自动处理所有脚本的执行权限
+- **别名系统**: 在.bashrc中预设便捷命令别名
+
+这个版本实现了真正的"开箱即用"体验，特别适合RunPod等远程部署场景！
+
+---
+
+## 版本 1.0.4 - Python环境修复和镜像更新 (2025-01-07)
+
+### 🐍 Python环境修复
+- **问题修复**: 解决Docker镜像中python/python3命令不可用的问题
+- **环境变量**: 添加PYTHONPATH和PATH环境变量确保Python可执行
+- **符号链接**: 在基础镜像中创建python和python3的符号链接
+- **验证机制**: 在所有模型Dockerfile中添加Python环境验证
+
+### 🔧 技术改进
+- **基础镜像更新**: 修复`containers/base/Dockerfile.vscode-base`中的Python环境
+- **符号链接创建**: `/opt/conda/bin/python` → `/usr/bin/python`和`/usr/bin/python3`
+- **环境变量设置**: `PYTHONPATH=/opt/conda/bin:/usr/local/bin:/usr/bin:/bin`
+- **模型镜像更新**: 所有5个模型Dockerfile都包含Python环境验证
+
+### 📦 镜像重新发布
+成功重新构建并推送所有模型镜像到Docker Hub，解决Python环境问题：
+- **MapTR**: `iankaramazov/ai-models:maptr-latest` ✅ 
+- **PETR**: `iankaramazov/ai-models:petr-latest` ✅
+- **StreamPETR**: `iankaramazov/ai-models:streampetr-latest` ✅  
+- **TopoMLP**: `iankaramazov/ai-models:topomlp-latest` ✅
+- **VAD**: `iankaramazov/ai-models:vad-latest` ✅
+
+### 🚀 用户体验改进
+- **Python命令**: 现在可以在容器中直接使用`python`和`python3`命令
+- **pip工具**: pip和pip3命令也已正确配置
+- **开发环境**: 完全支持Python开发工作流
+- **向后兼容**: 保持所有现有功能不变
+
+### 📊 技术细节
+- **构建时间**: TopoMLP和VAD需要约6分钟（mmcv-full编译）
+- **镜像大小**: 与之前版本相同（13.9-14.6GB）
+- **验证测试**: 所有镜像在构建时验证Python环境可用性
+- **缓存优化**: 利用Docker层缓存加速重复构建
+
+---
+
 ## 版本 1.0.3 - Docker Hub模型发布 (2025-01-07)
 
 ### 🐳 Docker Hub发布

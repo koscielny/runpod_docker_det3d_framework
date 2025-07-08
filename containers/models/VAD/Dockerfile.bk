@@ -1,0 +1,133 @@
+# VAD Official Environment Dockerfile
+# 基于vscode-base但重新配置Python 3.7并添加CUDA开发环境
+FROM iankaramazov/ai-models:pytorch191-cuda111-base
+
+# 安装CUDA开发工具和Python 3.7
+RUN apt-get update && apt-get install -y \
+    python3.7 \
+    python3.7-dev \
+    python3.7-distutils \
+    build-essential \
+    cmake \
+    ninja-build \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1
+
+# 设置CUDA环境变量
+ENV CUDA_HOME=/usr/local/cuda-11.1
+ENV PATH=${CUDA_HOME}/bin:${PATH}
+ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+ENV CUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}
+ENV CUDA_TOOLKIT_ROOT=${CUDA_HOME}
+ENV CUDACXX=${CUDA_HOME}/bin/nvcc
+
+# 设置工作目录
+WORKDIR /app
+
+# 验证Python版本和CUDA环境
+RUN python --version && python3 --version && echo "CUDA环境:" && nvcc --version
+
+# 重新安装pip for Python 3.7
+RUN curl https://bootstrap.pypa.io/pip/3.7/get-pip.py -o get-pip.py && \
+    python get-pip.py && \
+    rm get-pip.py
+
+# 克隆VAD仓库
+RUN git clone https://github.com/koscielny/VAD_docker.git /app/VAD && \
+    cd /app/VAD && \
+    git checkout runpod/init
+
+# 复制官方VAD requirements
+COPY containers/models/VAD/requirements_official.txt /tmp/vad_requirements.txt
+
+# 按照官方配置安装PyTorch (Python 3.7兼容)
+RUN pip install --no-cache-dir \
+    torch==1.9.1+cu111 \
+    torchvision==0.10.1+cu111 \
+    torchaudio==0.9.1 \
+    -f https://download.pytorch.org/whl/cu111/torch_stable.html
+
+# 安装官方配置的numpy
+RUN pip install --no-cache-dir numpy==1.19.5
+
+# # 安装mmcv-full（官方配置）
+# RUN pip install --no-cache-dir \
+#     mmcv-full==1.4.0 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+
+# RUN pip install mmcv-full==1.4.0
+# RUN git clone https://github.com/open-mmlab/mmdetection3d.git
+# RUN cd mmdetection3d
+# RUN git checkout -f v0.17.1
+# RUN python setup.py develop
+RUN pip install --no-cache-dir --upgrade openmim
+
+RUN mim install mmcv-full==1.4.0 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+
+RUN pip install mmdet==2.14.0 --no-cache-dir
+RUN pip install mmsegmentation==0.14.1 --no-cache-dir
+# 先安装其他VAD依赖 (不包含mmdet3d)
+RUN pip install --no-cache-dir -r /tmp/vad_requirements.txt
+
+# 单独安装mmdet3d，设置详细的编译环境
+# ENV TORCH_CUDA_ARCH_LIST="6.0 6.1 7.0 7.5 8.0 8.6+PTX"
+ENV TORCH_CUDA_ARCH_LIST="8.6+PTX"
+ENV FORCE_CUDA="1"
+ENV MAX_JOBS="4"
+ENV MMCV_WITH_OPS="1"
+
+# 尝试安装mmdet3d（如果失败，容器仍可用于其他功能）
+# RUN pip install --no-cache-dir \
+#         cumm-cu111 \
+#         spconv-cu111 \
+#         ninja
+RUN git clone https://github.com/open-mmlab/mmdetection3d.git -b v0.17.1 --depth 1 \
+ && cd mmdetection3d \
+ && pip install -v -e .
+
+ENV PYTHONPATH=/app/mmdetection3d:${PYTHONPATH}
+
+
+# 复制模型特定文件
+COPY containers/models/VAD/inference.py /app/VAD/inference.py
+
+# 复制共享脚本
+COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
+
+# 复制核心配置文件
+COPY config/ /app/config/
+
+# 复制完整的scripts目录
+COPY scripts/ /app/scripts/
+
+# 复制工具目录
+COPY tools/ /app/tools/
+
+# 复制统一主入口
+COPY runpod_platform.sh /app/runpod_platform.sh
+
+# 复制数据集管理脚本
+COPY datasets/ /app/datasets/
+
+# 复制测试数据
+COPY tests/test_results/test_data/ /app/test_data/
+
+# 复制文档目录
+COPY docs/ /app/docs/
+
+# 设置权限
+RUN chmod +x /app/entrypoint.sh
+
+# 创建便捷别名
+RUN echo 'alias vad="cd /app/VAD && python inference.py"' >> /root/.bashrc
+
+# 工作目录设置为模型目录
+WORKDIR /app/VAD
+
+# 暴露SSH端口
+EXPOSE 22
+
+# 设置入口点
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# 默认保持容器运行 (无CMD，让entrypoint处理)
+# CMD []

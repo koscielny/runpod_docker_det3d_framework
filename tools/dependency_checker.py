@@ -13,7 +13,9 @@ import importlib
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 import warnings
-
+import mmdet
+import mmdet3d
+import mmcv
 # 抑制警告信息，避免影响检查结果显示
 warnings.filterwarnings("ignore")
 
@@ -21,7 +23,9 @@ class DependencyChecker:
     """依赖检查器"""
     
     def __init__(self, model_name: str = "Unknown"):
-        self.model_name = model_name.upper()
+        # 保持正确的模型名称格式
+        self.model_name = model_name
+        self.display_name = model_name.upper()
         self.checks_passed = 0
         self.checks_total = 0
         self.errors = []
@@ -48,7 +52,7 @@ class DependencyChecker:
         
         # Python版本
         python_version = sys.version_info
-        required_major, required_minor = 3, 8
+        required_major, required_minor = 3, 7
         version_ok = python_version.major >= required_major and python_version.minor >= required_minor
         self.log_result(
             "Python版本", 
@@ -107,9 +111,8 @@ class DependencyChecker:
                 all_ok = False
         
         return all_ok
-    
     def check_ai_frameworks(self) -> bool:
-        """检查AI框架和库"""
+        """检查AI框架和库 - 简化版本"""
         print("\n🤖 检查AI框架...")
         
         ai_deps = {
@@ -122,7 +125,7 @@ class DependencyChecker:
             'timm': 'PyTorch图像模型库',
         }
         
-        # 模块名映射
+        # Module name mapping for special cases
         module_mapping = {
             'scikit-image': 'skimage',
             'scikit-learn': 'sklearn'
@@ -133,19 +136,25 @@ class DependencyChecker:
         
         for pkg_name, description in ai_deps.items():
             module_name = module_mapping.get(pkg_name, pkg_name)
-            try:
-                module = importlib.import_module(module_name)
-                version = getattr(module, '__version__', 'Unknown')
-                self.log_result(f"{pkg_name}", True, f"{description} - 版本 {version}", is_critical=False)
+            
+            # Use simplified import strategy for MM modules and others
+            if pkg_name in ['mmcv', 'mmdet', 'mmdet3d']:
+                success, version = self._simple_import_mm_module(module_name)
+            else:
+                success, version = self._simple_import_module(module_name)
+            
+            if success:
+                status_msg = f"{description} - 版本 {version}"
+                self.log_result(f"{pkg_name}", True, status_msg, is_critical=False)
                 available_count += 1
-                if pkg_name in ['mmcv', 'scipy']:  # 核心框架
+                if pkg_name in ['mmcv', 'scipy']:  # Core frameworks
                     essential_count += 1
-            except ImportError:
-                is_critical = pkg_name in ['mmcv', 'scipy']  # mmcv和scipy是关键的
+            else:
+                is_critical = pkg_name in ['mmcv', 'scipy']
                 self.log_result(f"{pkg_name}", False, f"{description} - 未安装", is_critical=is_critical)
         
-        return essential_count >= 1  # 至少有一个核心框架可用
-    
+        return essential_count >= 1  # At least one core framework available
+
     def check_gpu_support(self) -> bool:
         """检查GPU支持"""
         print("\n🎮 检查GPU支持...")
@@ -204,10 +213,10 @@ class DependencyChecker:
         # 检查关键目录
         important_paths = {
             '/app': '应用根目录',
-            f'/app/{self.model_name}': f'{self.model_name}模型目录',
+            f'/app/{self.model_name}': f'{self.display_name}模型目录',
             '/app/tools': '工具目录',
-            '/app/health_check.py': '健康检查脚本',
-            '/app/model_output_standard.py': '标准输出脚本',
+            '/app/tools/health_check.py': '健康检查脚本',
+            '/app/tools/model_output_standard.py': '标准输出脚本',
         }
         
         all_ok = True
@@ -378,7 +387,7 @@ class DependencyChecker:
     def run_full_check(self) -> bool:
         """运行完整的依赖检查"""
         print("=" * 70)
-        print(f"🔍 Docker容器依赖检查 - {self.model_name}模型")
+        print(f"🔍 Docker容器依赖检查 - {self.display_name}模型")
         print("=" * 70)
         
         # 执行所有检查
@@ -424,7 +433,7 @@ class DependencyChecker:
         
         # 最终状态
         if report['status'] == 'READY':
-            print(f"\n🎉 状态: 容器依赖健全，{self.model_name}模型可以运行！")
+            print(f"\n🎉 状态: 容器依赖健全，{self.display_name}模型可以运行！")
             print(f"📝 建议: 可以开始使用模型进行推理")
         else:
             print(f"\n⚠️  状态: 发现问题，需要修复后才能运行模型")
@@ -443,6 +452,53 @@ class DependencyChecker:
         print("=" * 70)
         
         return report['status'] == 'READY'
+
+    # ...existing code...
+
+    def _simple_import_mm_module(self, module_name: str) -> Tuple[bool, str]:
+        """
+        Simple import method for MM modules (mmcv, mmdet, mmdet3d)
+        Using the verified approach that works for these modules
+        
+        Args:
+            module_name: Name of the module to import
+            
+        Returns:
+            Tuple of (success, version)
+        """
+        try:
+            module = importlib.import_module(module_name)
+            version = getattr(module, '__version__', 'Unknown')
+            return True, version
+        except ImportError:
+            return False, 'Unknown'
+        except Exception:
+            return False, 'Unknown'
+
+    def _simple_import_module(self, module_name: str) -> Tuple[bool, str]:
+        """
+        Simple import method for other modules
+        
+        Args:
+            module_name: Name of the module to import
+            
+        Returns:
+            Tuple of (success, version)
+        """
+        try:
+            module = importlib.import_module(module_name)
+            # Try common version attributes
+            version_attrs = ['__version__', 'VERSION', 'version']
+            for attr in version_attrs:
+                if hasattr(module, attr):
+                    version = getattr(module, attr)
+                    if version:
+                        return True, str(version)
+            return True, 'Unknown'
+        except ImportError:
+            return False, 'Unknown'
+        except Exception:
+            return False, 'Unknown'
 
 def detect_model_name() -> str:
     """自动检测当前模型名称"""

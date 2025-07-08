@@ -7,6 +7,9 @@
 - [x] **分析项目核心功能** - 已完成
 - [x] **创建版本文档** (version.md) - 已完成
 - [ ] **在RunPod上完整测试系统** - 待办
+- [ ] **重要:检查dockerfile是否有安装requirement.txt** - 待办
+- [ ] **分析,是否能用dockerhub的runpod/pytorch:2.1.0-py3.10-cuda11.8.0-devel-ubuntu22.04 替代FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-devel(在runpod_docker/containers/base/Dockerfile.vscode-base中)** - 待办
+
 
 ### 中优先级任务
 - [x] **文档精简和重组** - 已完成

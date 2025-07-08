@@ -72,8 +72,10 @@ fi
 echo "📁 检查关键文件..."
 KEY_FILES=(
     "/app"
-    "/app/health_check.py"
-    "/app/model_output_standard.py"
+    "/app/tools/health_check.py"
+    "/app/tools/model_output_standard.py"
+    "/app/tools/dependency_checker.py"
+    "/app/runpod_platform.sh"
 )
 
 for file in "${KEY_FILES[@]}"; do

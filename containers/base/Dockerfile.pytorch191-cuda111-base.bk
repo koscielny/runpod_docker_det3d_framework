@@ -1,0 +1,110 @@
+# PyTorch 1.9.1 + CUDA 11.1 + VSCode Base
+# 专为需要mmdet3d的模型设计的基础镜像
+FROM pytorch/pytorch:1.9.1-cuda11.1-cudnn8-devel
+
+# 设置环境变量
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+ENV PYTHONPATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin
+ENV PATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin:$PATH
+
+# 修复CUDA GPG密钥问题并安装完整的vscode兼容系统依赖
+RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub || true && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    # 基础开发工具
+    git \
+    wget \
+    curl \
+    build-essential \
+    cmake \
+    ninja-build \
+    sudo \
+    nano \
+    vim \
+    htop \
+    ca-certificates \
+    # SSH服务器
+    openssh-server \
+    # VS Code Server系统依赖
+    libc6 \
+    libgcc1 \
+    libstdc++6 \
+    libatomic1 \
+    # VS Code Server GUI依赖
+    libicu60 \
+    libx11-6 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    libgtk-3-0 \
+    libdrm2 \
+    libxkbfile1 \
+    libgbm1 \
+    # OpenGL支持
+    libgl1-mesa-glx \
+    libsm6 \
+    # 压缩工具
+    tar \
+    gzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 配置VS Code Server动态链接器
+RUN mkdir -p /lib64 && \
+    ln -sf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+
+# 配置SSH服务
+RUN mkdir -p /var/run/sshd /root/.ssh && \
+    chmod 700 /root/.ssh && \
+    echo 'Port 22' >> /etc/ssh/sshd_config && \
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && \
+    echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'AuthorizedKeysFile .ssh/authorized_keys' >> /etc/ssh/sshd_config && \
+    echo 'X11Forwarding yes' >> /etc/ssh/sshd_config && \
+    echo 'ClientAliveInterval 60' >> /etc/ssh/sshd_config && \
+    echo 'ClientAliveCountMax 3' >> /etc/ssh/sshd_config && \
+    echo 'root:runpod123' | chpasswd
+
+# 安装Jupyter Lab和基础Python包
+RUN pip install --no-cache-dir \
+    jupyterlab \
+    ipywidgets \
+    notebook \
+    psutil \
+    matplotlib \
+    seaborn \
+    pandas \
+    plotly \
+    ipykernel \
+    numpy \
+    pillow
+
+# RUN pip install -U openmim
+# RUN mim install mmengine
+
+# 安装适配PyTorch 1.9.1 + CUDA 11.1的mmcv-full
+RUN pip install --no-cache-dir \
+    mmcv-full==1.4.0 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+
+# 添加VS Code Server兼容标识
+RUN echo "VS_CODE_SERVER_COMPATIBLE=true" >> /etc/environment && \
+    echo "GLIBC_VERSION=$(ldd --version | head -n1 | grep -o '[0-9]\+\.[0-9]\+')" >> /etc/environment && \
+    echo "PYTORCH_CUDA_VERSION=1.9.1+cu111" >> /etc/environment
+
+# 验证环境
+RUN python --version && \
+    python -c "import torch; print(f'PyTorch: {torch.__version__}'); print(f'CUDA: {torch.version.cuda}'); print(f'CUDA可用: {torch.cuda.is_available()}')" && \
+    nvcc --version
+
+# 暴露SSH和Jupyter端口
+EXPOSE 22 8888
+
+# 设置工作目录
+WORKDIR /app

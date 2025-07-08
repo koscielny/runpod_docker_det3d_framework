@@ -1,0 +1,73 @@
+# VS Code Server Development Environment
+# 基于pytorch-cuda添加VS Code Server和开发工具
+FROM iankaramazov/ai-models:pytorch191-cuda111
+
+# 安装VS Code Server系统依赖和开发工具
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # 基础开发工具
+    git \
+    wget \
+    sudo \
+    nano \
+    vim \
+    htop \
+    ca-certificates \
+    # SSH服务器
+    openssh-server \
+    # VS Code Server系统依赖
+    libc6 \
+    libgcc1 \
+    libstdc++6 \
+    libatomic1 \
+    # VS Code Server GUI依赖
+    libicu60 \
+    libx11-6 \
+    libxcomposite1 \
+    libxcursor1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxi6 \
+    libxrandr2 \
+    libxrender1 \
+    libxss1 \
+    libxtst6 \
+    libgtk-3-0 \
+    libdrm2 \
+    libxkbfile1 \
+    libgbm1 \
+    # OpenGL支持
+    libgl1-mesa-glx \
+    libsm6 \
+    # 压缩工具
+    tar \
+    gzip \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# 配置VS Code Server动态链接器
+RUN mkdir -p /lib64 && \
+    ln -sf /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /lib64/ld-linux-x86-64.so.2
+
+# 配置SSH服务
+RUN mkdir -p /var/run/sshd /root/.ssh && \
+    chmod 700 /root/.ssh && \
+    echo 'Port 22' >> /etc/ssh/sshd_config && \
+    echo 'PermitRootLogin yes' >> /etc/ssh/sshd_config && \
+    echo 'PasswordAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'PubkeyAuthentication yes' >> /etc/ssh/sshd_config && \
+    echo 'AuthorizedKeysFile .ssh/authorized_keys' >> /etc/ssh/sshd_config && \
+    echo 'X11Forwarding yes' >> /etc/ssh/sshd_config && \
+    echo 'ClientAliveInterval 60' >> /etc/ssh/sshd_config && \
+    echo 'ClientAliveCountMax 3' >> /etc/ssh/sshd_config && \
+    echo 'root:runpod123' | chpasswd
+
+# 添加VS Code Server兼容标识
+RUN echo "VS_CODE_SERVER_COMPATIBLE=true" >> /etc/environment && \
+    echo "GLIBC_VERSION=$(ldd --version | head -n1 | grep -o '[0-9]\+\.[0-9]\+')" >> /etc/environment && \
+    echo "PYTORCH_CUDA_VERSION=1.9.1+cu111" >> /etc/environment
+
+# 暴露SSH端口
+EXPOSE 22
+
+# 设置工作目录
+WORKDIR /app
