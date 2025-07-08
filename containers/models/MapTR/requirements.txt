@@ -1,8 +1,26 @@
 
-torch==1.11.0
-torchvision==0.12.0
-torchaudio==0.11.0
-mmcv-full==1.6.0
+# MapTR Dependencies - 基于原始代码库requirement.txt + 推断的必要依赖
+# 原始代码库: /home/ian/dev/src/online_mapping/MapTR/requirement.txt (只有shapely和av2)
+# 但需要补充PyTorch和MM库依赖以支持模型运行
+
+# PyTorch系列（兼容Python 3.7+）
+torch==1.9.1+cu111
+torchvision==0.10.1+cu111
+torchaudio==0.9.1
+
+# OpenMMLab生态系统
+mmcv-full==1.4.0
 mmdet==2.14.0
 mmsegmentation==0.14.1
-timm
+
+# 原始代码库要求（av2需要Python 3.8+，暂时移除）
+shapely==1.8.5.post1
+# av2  # 需要Python 3.8+，暂时注释
+
+# 常见依赖（简化版本，避免Python版本冲突）
+numpy<1.20.0
+# timm  # 有Python版本兼容性问题
+opencv-python
+scipy
+# scikit-image  # 暂时移除，避免依赖冲突
+psutil

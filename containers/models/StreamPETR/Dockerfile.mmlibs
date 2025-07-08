@@ -1,0 +1,31 @@
+# StreamPETR MM Libraries Environment
+# 基于jupyterlab添加StreamPETR所需的MM系列库
+FROM iankaramazov/ai-models:jupyterlab
+
+# 安装兼容PyTorch 1.9.1的核心库
+RUN pip install --no-cache-dir \
+    torch==1.9.1+cu111 \
+    torchvision==0.10.1+cu111 \
+    torchaudio==0.9.1 \
+    -f https://download.pytorch.org/whl/cu111/torch_stable.html
+
+# 安装官方配置的numpy
+RUN pip install --no-cache-dir numpy>=1.19.0
+
+# 安装OpenMMLab工具链
+RUN pip install --no-cache-dir --upgrade openmim
+
+# 安装StreamPETR要求的更新版本mmcv-full
+RUN mim install mmcv-full==1.6.0 -f https://download.openmmlab.com/mmcv/dist/cu111/torch1.9.0/index.html
+
+# 安装StreamPETR特定版本的mmdet和mmsegmentation
+RUN pip install mmdet==2.28.2 --no-cache-dir
+RUN pip install mmsegmentation==0.30.0 --no-cache-dir
+
+# 验证MM系列库安装
+RUN python -c "import mmcv; print(f'mmcv版本: {mmcv.__version__}')" && \
+    python -c "import mmdet; print(f'mmdet版本: {mmdet.__version__}')" && \
+    python -c "import mmseg; print(f'mmseg版本: {mmseg.__version__}')"
+
+# 设置工作目录
+WORKDIR /app

@@ -1,5 +1,44 @@
 # 版本记录 - 多模型AI评测平台
 
+## 版本 1.0.6 - 多层Docker架构重构 (2025-01-08)
+
+### 🏗️ 重大架构升级：模块化多层Docker设计
+- **分层架构**: 创建5层模块化Docker架构，解决依赖冲突和版本兼容性问题
+- **依赖优化**: 确保PyTorch 1.9.1 + CUDA 11.1版本一致性，解决mmdet3d构建难题
+- **模块分离**: 清晰分离基础环境、开发工具、科学计算、MM库、应用层关注点
+
+### 🐳 全新Docker镜像体系
+1. **pytorch191-cuda111**: 纯净PyTorch+CUDA+Python3.7基础环境
+2. **vscode**: VS Code Server开发环境，基于pytorch191-cuda111
+3. **jupyterlab**: Jupyter Lab科学计算环境，基于vscode
+4. **vad-mmlibs**: MM系列库编译环境(mmcv, mmdet, mmseg, mmdet3d)，基于jupyterlab
+5. **vad-latest**: 完整VAD应用镜像，基于vad-mmlibs
+
+### ✅ DockerHub发布状态
+所有镜像已成功推送到`iankaramazov/ai-models`仓库：
+- `pytorch191-cuda111`: 基础环境镜像 (digest: sha256:755f4dfd...)
+- `vscode`: 开发环境镜像 (digest: sha256:189b8e93...)
+- `jupyterlab`: 科学计算镜像 (digest: sha256:4f4fdc86...)
+- `vad-mmlibs`: MM库环境镜像 (digest: sha256:692006975d...)
+- `vad-latest`: VAD应用镜像 (digest: sha256:06aedebb3f...)
+
+### 🔧 技术突破
+- **构建效率**: Docker层缓存优化，重复构建时间大幅缩短
+- **依赖解决**: 彻底解决mmdet3d编译问题和PyTorch版本冲突
+- **模块复用**: 基础镜像可复用于其他模型，架构可扩展性强
+- **环境一致**: 所有层使用统一的Python 3.7 + PyTorch 1.9.1 + CUDA 11.1
+
+### 📊 构建性能
+- **pytorch191-cuda111**: ~3分钟 (纯净环境)
+- **vscode**: ~8分钟 (开发工具安装)
+- **jupyterlab**: ~12分钟 (科学计算包)
+- **vad-mmlibs**: ~35分钟 (MM库编译，含mmdet3d)
+- **vad-latest**: ~40分钟 (完整应用)
+
+下一步：基于此架构重构其他4个模型镜像，确保全平台一致性。
+
+---
+
 ## 版本 1.0.5 - 完整工具集成版 (2025-01-07)
 
 ### 🔧 重大功能升级：完全自包含的Docker镜像

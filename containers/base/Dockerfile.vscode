@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libstdc++6 \
     libatomic1 \
     # VS Code Server GUI依赖
-    libicu60 \
+    libicu70 \
     libx11-6 \
     libxcomposite1 \
     libxcursor1 \

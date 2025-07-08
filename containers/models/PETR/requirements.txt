@@ -1,8 +1,11 @@
 
+# PETR Dependencies - 基于原始代码库requirements.txt修正
+# 原始代码库: /home/ian/dev/src/online_mapping/PETR/requirements.txt
+
 lyft_dataset_sdk
-networkx==2.8
-numba==0.56.4
-numpy>=1.21.0,<1.25.0
+networkx>=2.2,<2.3
+numba==0.48.0
+numpy<1.20.0
 nuscenes-devkit
 plyfile
 scikit-image

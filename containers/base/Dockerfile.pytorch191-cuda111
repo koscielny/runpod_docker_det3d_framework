@@ -1,48 +1,86 @@
-# Pure PyTorch + CUDA + Python 3.7 Base Image
-# 纯净的PyTorch CUDA基础环境，不包含任何应用层依赖
-FROM pytorch/pytorch:1.9.1-cuda11.1-cudnn8-devel
+# Multi-stage build: PyTorch official + Ubuntu 22.04 with Python 3.7
+# 方案一改进版：结合官方PyTorch镜像和Ubuntu 22.04，降级到Python 3.7
+
+# 第一阶段：从PyTorch官方镜像获取预编译PyTorch和CUDA
+FROM pytorch/pytorch:1.9.1-cuda11.1-cudnn8-devel as pytorch-source
+
+# 第二阶段：Ubuntu 22.04 + Python 3.7
+FROM ubuntu:22.04
 
 # 设置基础环境变量
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=UTC
 
-# 修复CUDA GPG密钥问题
-RUN apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub || true
-
-# 安装Python 3.7和CUDA开发工具
+# 安装Python 3.7和基础工具
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    gpg-agent \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update && apt-get install -y --no-install-recommends \
     python3.7 \
     python3.7-dev \
     python3.7-distutils \
+    python3.7-venv \
     build-essential \
     cmake \
     ninja-build \
+    git \
     curl \
+    wget \
+    ca-certificates \
+    # 兼容性库
+    gcc-9 \
+    g++-9 \
+    libc6-dev \
     && update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1 \
     && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1 \
+    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 \
+    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 90 \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# 设置完整的CUDA环境变量
-ENV CUDA_HOME=/usr/local/cuda-11.1
-ENV PATH=${CUDA_HOME}/bin:${PATH}
-ENV LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
-ENV CUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}
-ENV CUDA_TOOLKIT_ROOT=${CUDA_HOME}
-ENV CUDACXX=${CUDA_HOME}/bin/nvcc
-# 设置环境变量
-ENV DEBIAN_FRONTEND=noninteractive
-ENV TZ=UTC
-ENV PYTHONPATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin
-ENV PATH=/usr/local/bin:/usr/bin:/bin:/opt/conda/bin:$PATH
-
-# 重新安装pip for Python 3.7
+# 安装pip for Python 3.7
 RUN curl https://bootstrap.pypa.io/pip/3.7/get-pip.py -o get-pip.py && \
     python get-pip.py && \
     rm get-pip.py
 
-# 验证环境
+# 从PyTorch镜像复制CUDA环境
+COPY --from=pytorch-source /usr/local/cuda-11.1 /usr/local/cuda-11.1
+COPY --from=pytorch-source /usr/local/cuda /usr/local/cuda
+
+# 复制NVIDIA运行时库和工具
+COPY --from=pytorch-source /usr/lib/x86_64-linux-gnu/libnvidia* /usr/lib/x86_64-linux-gnu/
+COPY --from=pytorch-source /usr/bin/nvidia* /usr/bin/
+
+# 安装与官方PyTorch镜像相同版本的PyTorch
+RUN pip install --no-cache-dir \
+    torch==1.9.1+cu111 \
+    torchvision==0.10.1+cu111 \
+    torchaudio==0.9.1 \
+    -f https://download.pytorch.org/whl/cu111/torch_stable.html
+
+# 设置环境变量
+ENV PATH=/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ENV CUDA_HOME=/usr/local/cuda-11.1
+ENV LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV NVIDIA_REQUIRE_CUDA="cuda>=11.1 brand=tesla,driver>=418,driver<419 brand=tesla,driver>=440,driver<441 brand=tesla,driver>=450,driver<451"
+
+# 设置CUDA相关环境变量
+ENV CUDA_TOOLKIT_ROOT_DIR=${CUDA_HOME}
+ENV CUDA_TOOLKIT_ROOT=${CUDA_HOME}
+ENV CUDACXX=${CUDA_HOME}/bin/nvcc
+
+# 创建Python和pip软链接（保持兼容性）
+RUN ln -sf /usr/bin/python /usr/local/bin/python && \
+    ln -sf /usr/bin/python3 /usr/local/bin/python3 && \
+    ln -sf /usr/local/bin/pip /usr/bin/pip
+
+# 验证环境（确保所有组件正常工作）
 RUN python --version && python3 --version && \
-    nvcc --version
+    nvcc --version && \
+    python -c "import torch; print(f'PyTorch版本: {torch.__version__}'); print(f'CUDA可用: {torch.cuda.is_available()}'); print(f'CUDA版本: {torch.version.cuda if torch.cuda.is_available() else \"N/A\"}')" && \
+    python -c "import sys; print(f'Python路径: {sys.executable}'); print(f'Conda环境: {sys.prefix}')"
 
 # 设置工作目录
 WORKDIR /app
