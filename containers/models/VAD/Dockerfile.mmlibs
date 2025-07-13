@@ -1,7 +1,7 @@
 # MM Series Libraries (mmcv, mmdet, mmseg, mmdet3d) Environment
 # 专门用于编译和安装MM系列库的环境
 FROM iankaramazov/ai-models:jupyterlab
-
+WORKDIR /app
 # 按照官方配置安装PyTorch (确保Python 3.7兼容)
 RUN pip install --no-cache-dir \
     torch==1.9.1+cu111 \

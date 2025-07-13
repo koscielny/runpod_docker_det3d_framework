@@ -2,40 +2,46 @@
 
 ## 版本 1.0.6 - 多层Docker架构重构 (2025-01-08)
 
-### 🏗️ 重大架构升级：模块化多层Docker设计
+### 🏗️ 重大架构升级：真正的多阶段Docker构建
+- **多阶段构建**: 实现Ubuntu 22.04 + PyTorch官方镜像的多阶段构建方案
 - **分层架构**: 创建5层模块化Docker架构，解决依赖冲突和版本兼容性问题
-- **依赖优化**: 确保PyTorch 1.9.1 + CUDA 11.1版本一致性，解决mmdet3d构建难题
-- **模块分离**: 清晰分离基础环境、开发工具、科学计算、MM库、应用层关注点
+- **版本统一**: 确保PyTorch 1.9.1 + CUDA 11.1 + Python 3.7版本一致性
+- **兼容性修复**: 解决Ubuntu 22.04相关的依赖库版本问题(libicu70等)
 
 ### 🐳 全新Docker镜像体系
-1. **pytorch191-cuda111**: 纯净PyTorch+CUDA+Python3.7基础环境
-2. **vscode**: VS Code Server开发环境，基于pytorch191-cuda111
+1. **pytorch191-cuda111**: 多阶段基础环境(Ubuntu 22.04 + Python 3.7 + PyTorch 1.9.1 + CUDA 11.1)
+2. **vscode**: VS Code Server开发环境，基于pytorch191-cuda111  
 3. **jupyterlab**: Jupyter Lab科学计算环境，基于vscode
-4. **vad-mmlibs**: MM系列库编译环境(mmcv, mmdet, mmseg, mmdet3d)，基于jupyterlab
-5. **vad-latest**: 完整VAD应用镜像，基于vad-mmlibs
+4. **{model}-mmlibs**: 各模型MM系列库编译环境，基于jupyterlab
+5. **{model}-latest**: 完整模型应用镜像，基于对应mmlibs层
 
-### ✅ DockerHub发布状态
-所有镜像已成功推送到`iankaramazov/ai-models`仓库：
-- `pytorch191-cuda111`: 基础环境镜像 (digest: sha256:755f4dfd...)
-- `vscode`: 开发环境镜像 (digest: sha256:189b8e93...)
-- `jupyterlab`: 科学计算镜像 (digest: sha256:4f4fdc86...)
-- `vad-mmlibs`: MM库环境镜像 (digest: sha256:692006975d...)
-- `vad-latest`: VAD应用镜像 (digest: sha256:06aedebb3f...)
+### 🔧 重大技术突破
+- **多阶段构建**: 真正结合Ubuntu 22.04和PyTorch官方镜像
+- **环境修复**: 修复Python/pip软链接和PATH配置问题  
+- **依赖清理**: 系统清理各模型requirements.txt版本冲突
+- **架构统一**: 所有模型使用相同的5层架构模式
 
-### 🔧 技术突破
-- **构建效率**: Docker层缓存优化，重复构建时间大幅缩短
-- **依赖解决**: 彻底解决mmdet3d编译问题和PyTorch版本冲突
-- **模块复用**: 基础镜像可复用于其他模型，架构可扩展性强
-- **环境一致**: 所有层使用统一的Python 3.7 + PyTorch 1.9.1 + CUDA 11.1
+### ✅ 当前构建状态
+已成功构建新的多阶段基础架构：
+- `pytorch191-cuda111`: ✅ 多阶段基础环境 (13.8GB)
+- `vscode`: ✅ 开发环境 (14.0GB)  
+- `jupyterlab`: ✅ 科学计算环境 (14.4GB)
+- `vad-mmlibs`: 🔄 构建中 (mmdet3d编译耗时较长)
 
-### 📊 构建性能
-- **pytorch191-cuda111**: ~3分钟 (纯净环境)
-- **vscode**: ~8分钟 (开发工具安装)
-- **jupyterlab**: ~12分钟 (科学计算包)
-- **vad-mmlibs**: ~35分钟 (MM库编译，含mmdet3d)
-- **vad-latest**: ~40分钟 (完整应用)
+### 🛠️ 技术改进细节
+- **多阶段Dockerfile**: 从PyTorch官方镜像复制CUDA环境到Ubuntu 22.04
+- **依赖版本修复**: libicu60→libicu70, Python软链接配置等
+- **构建优化**: Docker层缓存最大化利用，减少重复构建时间
+- **模块复用**: 基础镜像可复用于所有模型，确保环境一致性
 
-下一步：基于此架构重构其他4个模型镜像，确保全平台一致性。
+### 📊 预期构建性能  
+- **pytorch191-cuda111**: ~5分钟 (多阶段基础环境)
+- **vscode**: ~10分钟 (开发工具安装)
+- **jupyterlab**: ~15分钟 (科学计算包)
+- **{model}-mmlibs**: ~40分钟 (MM库编译，含mmdet3d)
+- **{model}-latest**: ~45分钟 (完整应用)
+
+下一步：完成VAD构建并基于此架构重构其他4个模型镜像。
 
 ---
 
