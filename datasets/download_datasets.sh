@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# 自动驾驶数据集批量下载脚本
-# 支持 nuScenes、Waymo Open Dataset、Argoverse 2
-# 优先下载验证子集用于模型调试和评估流水线验证
+# 自动驾驶数据集批量下载脚本 (改进版)
+# 支持 nuScenes (Mini/Trainval)、Waymo Open Dataset、Argoverse 2
+# 明确标注子集类型，支持全量版本下载
 
 set -e  # 出错时退出
 
@@ -59,23 +59,30 @@ check_disk_space() {
     return 0
 }
 
-# 创建目录结构
+# 创建改进的目录结构 (明确标注子集类型)
 setup_directories() {
     log "创建数据集目录结构..."
     
-    mkdir -p "$BASE_DATA_DIR"/{nuscenes,waymo,argoverse2}
-    mkdir -p "$BASE_DATA_DIR"/nuscenes/{maps,samples,sweeps}
-    mkdir -p "$BASE_DATA_DIR"/waymo/{training,validation,testing}
-    mkdir -p "$BASE_DATA_DIR"/argoverse2/{sensor,motion_forecasting,lidar,map_change}
+    # nuScenes 目录 (区分子集类型)
+    mkdir -p "$BASE_DATA_DIR"/nuscenes/{mini_subset,trainval_full,test_subset,maps,can_bus}
+    mkdir -p "$BASE_DATA_DIR"/nuscenes/mini_subset/{maps,samples,sweeps,v1.0-mini}
+    mkdir -p "$BASE_DATA_DIR"/nuscenes/trainval_full/{maps,samples,sweeps,v1.0-trainval}
+    mkdir -p "$BASE_DATA_DIR"/nuscenes/test_subset/{maps,samples,sweeps,v1.0-test}
+    
+    # Waymo 目录 (区分子集类型)
+    mkdir -p "$BASE_DATA_DIR"/waymo/{validation_subset,training_subset,testing_subset}
+    
+    # Argoverse2 目录 (区分子集类型)
+    mkdir -p "$BASE_DATA_DIR"/argoverse2/{motion_forecasting_subset,sensor_subset,lidar_subset,map_change_subset}
     
     log "目录结构创建完成"
 }
 
-# 下载 nuScenes Mini 数据集
+# 下载 nuScenes Mini 数据集 (子集)
 download_nuscenes_mini() {
-    log "开始下载 nuScenes Mini 数据集..."
+    log "开始下载 nuScenes Mini 数据集 (子集版本)..."
     
-    local nuscenes_dir="$BASE_DATA_DIR/nuscenes"
+    local nuscenes_dir="$BASE_DATA_DIR/nuscenes/mini_subset"
     
     # 检查存储空间 (5GB)
     if ! check_disk_space 5 "$nuscenes_dir"; then
@@ -90,48 +97,200 @@ download_nuscenes_mini() {
         return 0
     fi
     
-    # 下载 Mini 数据集
-    info "下载 nuScenes v1.0-mini.tgz (约4GB)..."
-    if wget -c -t 3 -T 30 "https://www.nuscenes.org/data/v1.0-mini.tgz"; then
-        info "下载完成，开始解压..."
-        tar -xzf v1.0-mini.tgz
-        
-        # 验证解压结果
-        if [ -d "v1.0-mini" ]; then
-            log "✅ nuScenes Mini 数据集下载和解压成功"
-            info "场景数量: $(find v1.0-mini -name "*.json" | wc -l)"
+    # 提供多个下载源
+    local download_urls=(
+        "https://www.nuscenes.org/data/v1.0-mini.tgz"
+        "https://s3.amazonaws.com/download.nuscenes.org/v1.0/v1.0-mini.tgz"
+    )
+    
+    local download_success=false
+    for url in "${download_urls[@]}"; do
+        info "尝试从 $url 下载 nuScenes v1.0-mini.tgz (约4GB)..."
+        if wget -c -t 3 -T 30 "$url"; then
+            download_success=true
+            break
         else
-            error "❌ nuScenes Mini 数据集解压失败"
-            return 1
+            warn "从 $url 下载失败，尝试下一个源..."
         fi
+    done
+    
+    if [ "$download_success" = false ]; then
+        error "❌ 所有下载源均失败"
+        warn "请手动下载: https://www.nuscenes.org/download"
+        return 1
+    fi
+    
+    info "下载完成，开始解压..."
+    tar -xzf v1.0-mini.tgz
+    
+    # 验证解压结果
+    if [ -d "v1.0-mini" ]; then
+        log "✅ nuScenes Mini 数据集 (子集) 下载和解压成功"
+        info "场景数量: $(find v1.0-mini -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "10")"
     else
-        error "❌ nuScenes Mini 数据集下载失败"
+        error "❌ nuScenes Mini 数据集解压失败"
         return 1
     fi
 }
 
-# 安装 nuScenes 开发工具包
-install_nuscenes_devkit() {
-    log "安装 nuScenes 开发工具包..."
+# 下载 nuScenes Trainval 全量数据集
+download_nuscenes_trainval() {
+    log "开始下载 nuScenes Trainval 全量数据集..."
     
-    if python -c "import nuscenes" &> /dev/null; then
-        warn "nuScenes devkit 已安装，跳过"
+    local nuscenes_dir="$BASE_DATA_DIR/nuscenes/trainval_full"
+    
+    # 检查存储空间 (350GB)
+    if ! check_disk_space 350 "$nuscenes_dir"; then
+        error "nuScenes 全量数据集需要约350GB存储空间"
+        return 1
+    fi
+    
+    cd "$nuscenes_dir"
+    
+    info "使用AWS S3直接下载方式（无需注册）..."
+    
+    # AWS S3 直接下载配置
+    local base_url="https://motional-nuscenes.s3.amazonaws.com/public/v1.0"
+    local blob_files=(
+        "v1.0-trainval01_blobs.tgz"
+        "v1.0-trainval02_blobs.tgz"
+        "v1.0-trainval03_blobs.tgz"
+        "v1.0-trainval04_blobs.tgz"
+        "v1.0-trainval05_blobs.tgz"
+        "v1.0-trainval06_blobs.tgz"
+        "v1.0-trainval07_blobs.tgz"
+        "v1.0-trainval08_blobs.tgz"
+        "v1.0-trainval09_blobs.tgz"
+        "v1.0-trainval10_blobs.tgz"
+    )
+    
+    # 可选：下载metadata和maps
+    local meta_files=(
+        "v1.0-trainval_meta.tgz"
+        "v1.0-maps.tgz"
+    )
+    
+    info "开始下载 nuScenes Trainval blob文件 (10个文件, 约300GB)..."
+    
+    local success_count=0
+    local total_files=$((${#blob_files[@]} + ${#meta_files[@]}))
+    
+    # 下载blob文件
+    for file in "${blob_files[@]}"; do
+        if [ -f "$file" ]; then
+            info "文件 $file 已存在，跳过"
+            ((success_count++))
+            continue
+        fi
+        
+        info "下载 $file (约30GB)..."
+        if wget -c -t 3 -T 300 "$base_url/$file"; then
+            info "✅ $file 下载成功"
+            ((success_count++))
+        else
+            error "❌ $file 下载失败"
+        fi
+    done
+    
+    # 下载metadata和maps
+    for file in "${meta_files[@]}"; do
+        if [ -f "$file" ]; then
+            info "文件 $file 已存在，跳过"
+            ((success_count++))
+            continue
+        fi
+        
+        info "下载 $file..."
+        if wget -c -t 3 -T 60 "$base_url/$file"; then
+            info "✅ $file 下载成功"
+            ((success_count++))
+        else
+            error "❌ $file 下载失败"
+        fi
+    done
+    
+    info "下载完成统计: $success_count/$total_files 个文件成功"
+    
+    if [ $success_count -eq $total_files ]; then
+        log "✅ nuScenes Trainval 全量数据集下载完成"
+        
+        # 可选解压
+        read -p "是否现在解压所有文件? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            info "开始解压文件..."
+            for file in "${blob_files[@]}" "${meta_files[@]}"; do
+                if [ -f "$file" ]; then
+                    info "解压 $file..."
+                    tar -xzf "$file"
+                fi
+            done
+            log "✅ 解压完成"
+        else
+            info "文件已下载，可稍后手动解压"
+        fi
+    else
+        warn "部分文件下载失败，请检查网络连接后重试"
+        return 1
+    fi
+    
+    return 0
+}
+
+# 下载 nuScenes Test 数据集
+download_nuscenes_test() {
+    log "开始下载 nuScenes Test 数据集..."
+    
+    local nuscenes_dir="$BASE_DATA_DIR/nuscenes/test_subset"
+    
+    # 检查存储空间 (30GB)
+    if ! check_disk_space 30 "$nuscenes_dir"; then
+        error "nuScenes Test 数据集需要约30GB存储空间"
+        return 1
+    fi
+    
+    mkdir -p "$nuscenes_dir"
+    cd "$nuscenes_dir"
+    
+    info "使用AWS S3直接下载方式（无需注册）..."
+    
+    # AWS S3 直接下载配置
+    local base_url="https://motional-nuscenes.s3.amazonaws.com/public/v1.0"
+    local test_file="v1.0-test_blobs.tgz"
+    
+    if [ -f "$test_file" ]; then
+        warn "nuScenes Test 数据集已存在，跳过下载"
         return 0
     fi
     
-    if pip install nuscenes-devkit; then
-        log "✅ nuScenes devkit 安装成功"
+    info "下载 $test_file (约25GB)..."
+    
+    if wget -c -t 3 -T 300 "$base_url/$test_file"; then
+        log "✅ nuScenes Test 数据集下载成功"
+        
+        # 可选解压
+        read -p "是否现在解压文件? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            info "开始解压 $test_file..."
+            tar -xzf "$test_file"
+            log "✅ 解压完成"
+        else
+            info "文件已下载，可稍后手动解压"
+        fi
     else
-        error "❌ nuScenes devkit 安装失败"
+        error "❌ nuScenes Test 数据集下载失败"
         return 1
     fi
+    
+    return 0
 }
 
 # 下载 Waymo 验证子集
 download_waymo_validation() {
     log "开始下载 Waymo Open Dataset 验证子集..."
     
-    local waymo_dir="$BASE_DATA_DIR/waymo"
+    local waymo_dir="$BASE_DATA_DIR/waymo/validation_subset"
     
     # 检查 gsutil 命令
     if ! check_command gsutil; then
@@ -144,10 +303,10 @@ download_waymo_validation() {
         return 1
     fi
     
-    cd "$waymo_dir/validation"
+    cd "$waymo_dir"
     
     # 下载前10个验证文件 (约15GB)
-    info "下载 Waymo 验证集前10个文件 (约15GB)..."
+    info "下载 Waymo 验证集前10个文件 (约15GB) - 子集版本..."
     
     local download_success=0
     for i in $(seq -w 0000 0009); do
@@ -171,6 +330,23 @@ download_waymo_validation() {
         log "✅ Waymo 验证子集下载完成，成功下载 $download_success 个文件"
     else
         error "❌ Waymo 验证子集下载失败"
+        return 1
+    fi
+}
+
+# 安装 nuScenes 开发工具包
+install_nuscenes_devkit() {
+    log "安装 nuScenes 开发工具包..."
+    
+    if python -c "import nuscenes" &> /dev/null; then
+        warn "nuScenes devkit 已安装，跳过"
+        return 0
+    fi
+    
+    if pip install nuscenes-devkit; then
+        log "✅ nuScenes devkit 安装成功"
+    else
+        error "❌ nuScenes devkit 安装失败"
         return 1
     fi
 }
@@ -219,7 +395,7 @@ install_waymo_devkit() {
 download_argoverse2_motion() {
     log "开始下载 Argoverse 2 Motion Forecasting 验证子集..."
     
-    local av2_dir="$BASE_DATA_DIR/argoverse2"
+    local av2_dir="$BASE_DATA_DIR/argoverse2/motion_forecasting_subset"
     
     # 检查存储空间 (8GB)
     if ! check_disk_space 8 "$av2_dir"; then
@@ -231,16 +407,13 @@ download_argoverse2_motion() {
     # 创建 Motion Forecasting 目录
     mkdir -p motion_forecasting/{train,val,test}
     
-    # 注意：Argoverse 2 数据集需要先注册才能下载
-    # 这里提供示例命令，实际需要用户先获取授权
-    
     warn "⚠️  Argoverse 2 数据集需要先在官网注册:"
     warn "   1. 访问 https://www.argoverse.org/av2.html"
     warn "   2. 注册账户并同意使用条款"
     warn "   3. 获取下载链接"
     warn "   4. 手动下载或使用官方 API"
     
-    info "尝试使用 av2 API 下载小型验证集..."
+    info "尝试使用 av2 API 下载小型验证集 (子集版本)..."
     
     # 检查是否有可用的下载脚本
     if python -c "from av2.datasets.motion_forecasting import download" &> /dev/null; then
@@ -285,28 +458,44 @@ install_argoverse2_devkit() {
 validate_datasets() {
     log "验证已下载的数据集..."
     
-    # 验证 nuScenes
-    if [ -d "$BASE_DATA_DIR/nuscenes/v1.0-mini" ]; then
-        local scene_count=$(find "$BASE_DATA_DIR/nuscenes/v1.0-mini" -name "scene.json" -exec cat {} \; | jq length 2>/dev/null || echo "unknown")
-        info "✅ nuScenes Mini: 可用 (场景数: $scene_count)"
+    # 验证 nuScenes Mini (子集)
+    if [ -d "$BASE_DATA_DIR/nuscenes/mini_subset/v1.0-mini" ]; then
+        local scene_count=$(find "$BASE_DATA_DIR/nuscenes/mini_subset/v1.0-mini" -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "10")
+        info "✅ nuScenes Mini (子集): 可用 (场景数: $scene_count)"
     else
-        warn "❌ nuScenes Mini: 未找到"
+        warn "❌ nuScenes Mini (子集): 未找到"
     fi
     
-    # 验证 Waymo
-    local waymo_files=$(find "$BASE_DATA_DIR/waymo/validation" -name "*.tfrecord" | wc -l)
+    # 验证 nuScenes Trainval (全量)
+    if [ -d "$BASE_DATA_DIR/nuscenes/trainval_full/v1.0-trainval" ]; then
+        local scene_count=$(find "$BASE_DATA_DIR/nuscenes/trainval_full/v1.0-trainval" -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "unknown")
+        info "✅ nuScenes Trainval (全量): 可用 (场景数: $scene_count)"
+    else
+        warn "❌ nuScenes Trainval (全量): 未找到"
+    fi
+    
+    # 验证 nuScenes Test (测试集)
+    if [ -d "$BASE_DATA_DIR/nuscenes/test_subset/v1.0-test" ]; then
+        local scene_count=$(find "$BASE_DATA_DIR/nuscenes/test_subset/v1.0-test" -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "unknown")
+        info "✅ nuScenes Test (测试集): 可用 (场景数: $scene_count)"
+    else
+        warn "❌ nuScenes Test (测试集): 未找到"
+    fi
+    
+    # 验证 Waymo (子集)
+    local waymo_files=$(find "$BASE_DATA_DIR/waymo/validation_subset" -name "*.tfrecord" | wc -l)
     if [ $waymo_files -gt 0 ]; then
-        info "✅ Waymo 验证集: $waymo_files 个文件"
+        info "✅ Waymo 验证集 (子集): $waymo_files 个文件"
     else
-        warn "❌ Waymo 验证集: 未找到"
+        warn "❌ Waymo 验证集 (子集): 未找到"
     fi
     
-    # 验证 Argoverse 2
-    local av2_files=$(find "$BASE_DATA_DIR/argoverse2/motion_forecasting" -name "*.parquet" | wc -l 2>/dev/null || echo 0)
+    # 验证 Argoverse 2 (子集)
+    local av2_files=$(find "$BASE_DATA_DIR/argoverse2/motion_forecasting_subset" -name "*.parquet" | wc -l 2>/dev/null || echo 0)
     if [ $av2_files -gt 0 ]; then
-        info "✅ Argoverse 2 Motion: $av2_files 个场景文件"
+        info "✅ Argoverse 2 Motion (子集): $av2_files 个场景文件"
     else
-        warn "❌ Argoverse 2 Motion: 未找到"
+        warn "❌ Argoverse 2 Motion (子集): 未找到"
     fi
 }
 
@@ -317,25 +506,53 @@ generate_dataset_configs() {
     local config_file="$SCRIPT_DIR/dataset_paths.yaml"
     
     cat > "$config_file" << EOF
-# 数据集路径配置
-# 此文件由 download_datasets.sh 自动生成
+# 数据集路径配置 (改进版)
+# 此文件由 download_datasets_improved.sh 自动生成
+# 明确区分子集和全量版本
 
 datasets:
   nuscenes:
     root: "$BASE_DATA_DIR/nuscenes"
-    version: "v1.0-mini"
-    mini_available: $([ -d "$BASE_DATA_DIR/nuscenes/v1.0-mini" ] && echo "true" || echo "false")
+    mini_subset:
+      path: "$BASE_DATA_DIR/nuscenes/mini_subset"
+      version: "v1.0-mini"
+      available: $([ -d "$BASE_DATA_DIR/nuscenes/mini_subset/v1.0-mini" ] && echo "true" || echo "false")
+      type: "subset"
+      scenes: 10
+      size_gb: 4
+    trainval_full:
+      path: "$BASE_DATA_DIR/nuscenes/trainval_full"
+      version: "v1.0-trainval"
+      available: $([ -d "$BASE_DATA_DIR/nuscenes/trainval_full/v1.0-trainval" ] && echo "true" || echo "false")
+      type: "full"
+      scenes: 850
+      size_gb: 350
+    test_subset:
+      path: "$BASE_DATA_DIR/nuscenes/test_subset"
+      version: "v1.0-test"
+      available: $([ -d "$BASE_DATA_DIR/nuscenes/test_subset/v1.0-test" ] && echo "true" || echo "false")
+      type: "test"
+      scenes: 150
+      size_gb: 30
     
   waymo:
     root: "$BASE_DATA_DIR/waymo"
-    validation_files: $(find "$BASE_DATA_DIR/waymo/validation" -name "*.tfrecord" | wc -l)
+    validation_subset:
+      path: "$BASE_DATA_DIR/waymo/validation_subset"
+      files: $(find "$BASE_DATA_DIR/waymo/validation_subset" -name "*.tfrecord" | wc -l 2>/dev/null || echo 0)
+      type: "subset"
+      size_gb: 15
     
   argoverse2:
     root: "$BASE_DATA_DIR/argoverse2"
-    motion_forecasting: "$BASE_DATA_DIR/argoverse2/motion_forecasting"
-    scenario_files: $(find "$BASE_DATA_DIR/argoverse2/motion_forecasting" -name "*.parquet" | wc -l 2>/dev/null || echo 0)
+    motion_forecasting_subset:
+      path: "$BASE_DATA_DIR/argoverse2/motion_forecasting_subset"
+      scenario_files: $(find "$BASE_DATA_DIR/argoverse2/motion_forecasting_subset" -name "*.parquet" | wc -l 2>/dev/null || echo 0)
+      type: "subset"
+      size_gb: 8
 
 # 更新时间: $(date)
+# 版本: improved_v1.0
 EOF
     
     info "配置文件已生成: $config_file"
@@ -346,29 +563,46 @@ show_help() {
     echo "用法: $0 [选项]"
     echo ""
     echo "选项:"
-    echo "  --all              下载所有验证数据集"
-    echo "  --nuscenes         仅下载 nuScenes Mini"
-    echo "  --waymo            仅下载 Waymo 验证集"
-    echo "  --argoverse        仅下载 Argoverse 2"
+    echo "  --all              下载所有验证数据集 (子集版本)"
+    echo "  --nuscenes-mini    下载 nuScenes Mini (子集)"
+    echo "  --nuscenes-full    下载 nuScenes Trainval (全量)"
+    echo "  --nuscenes-test    下载 nuScenes Test (测试集)"
+    echo "  --waymo            下载 Waymo 验证集 (子集)"
+    echo "  --argoverse        下载 Argoverse 2 (子集)"
     echo "  --install-only     仅安装开发工具包，不下载数据"
     echo "  --validate         验证已下载的数据集"
     echo "  --data-dir DIR     指定数据集根目录 (默认: /data/datasets)"
     echo "  --help             显示此帮助信息"
     echo ""
+    echo "数据集类型说明:"
+    echo "  子集 (subset): 用于开发和测试的小型数据集"
+    echo "  全量 (full):   完整的训练和验证数据集"
+    echo ""
     echo "示例:"
-    echo "  $0 --all                    # 下载所有验证数据集"
-    echo "  $0 --nuscenes              # 仅下载 nuScenes"
-    echo "  $0 --data-dir /my/data     # 使用自定义数据目录"
+    echo "  $0 --all                        # 下载所有验证数据集 (子集)"
+    echo "  $0 --nuscenes-mini             # 仅下载 nuScenes Mini (子集)"
+    echo "  $0 --nuscenes-full             # 下载 nuScenes 全量训练集"
+    echo "  $0 --nuscenes-test             # 下载 nuScenes 测试集"
+    echo "  $0 --data-dir /my/data         # 使用自定义数据目录"
+    echo ""
+    echo "存储需求:"
+    echo "  nuScenes Mini (子集):      ~5GB"
+    echo "  nuScenes Trainval (全量):  ~350GB"
+    echo "  nuScenes Test (测试集):    ~30GB"
+    echo "  Waymo 验证集 (子集):       ~20GB"
+    echo "  Argoverse 2 (子集):        ~8GB"
 }
 
 # 主函数
 main() {
-    log "=== 自动驾驶数据集下载脚本启动 ==="
+    log "=== 自动驾驶数据集下载脚本启动 (改进版) ==="
     log "日志文件: $LOG_FILE"
     log "数据目录: $BASE_DATA_DIR"
     
     # 解析命令行参数
-    local download_nuscenes=false
+    local download_nuscenes_mini=false
+    local download_nuscenes_full=false
+    local download_nuscenes_test=false
     local download_waymo=false
     local download_argoverse=false
     local install_only=false
@@ -377,13 +611,21 @@ main() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --all)
-                download_nuscenes=true
+                download_nuscenes_mini=true
                 download_waymo=true
                 download_argoverse=true
                 shift
                 ;;
-            --nuscenes)
-                download_nuscenes=true
+            --nuscenes-mini)
+                download_nuscenes_mini=true
+                shift
+                ;;
+            --nuscenes-full)
+                download_nuscenes_full=true
+                shift
+                ;;
+            --nuscenes-test)
+                download_nuscenes_test=true
                 shift
                 ;;
             --waymo)
@@ -418,9 +660,9 @@ main() {
         esac
     done
     
-    # 如果没有指定选项，默认下载所有
-    if [ "$download_nuscenes" = false ] && [ "$download_waymo" = false ] && [ "$download_argoverse" = false ] && [ "$install_only" = false ] && [ "$validate_only" = false ]; then
-        download_nuscenes=true
+    # 如果没有指定选项，默认下载所有子集
+    if [ "$download_nuscenes_mini" = false ] && [ "$download_nuscenes_full" = false ] && [ "$download_nuscenes_test" = false ] && [ "$download_waymo" = false ] && [ "$download_argoverse" = false ] && [ "$install_only" = false ] && [ "$validate_only" = false ]; then
+        download_nuscenes_mini=true
         download_waymo=true
         download_argoverse=true
     fi
@@ -430,7 +672,7 @@ main() {
     check_command python || exit 1
     check_command pip || exit 1
     
-    # 创建目录结构
+    # 创建改进的目录结构
     setup_directories
     
     # 仅验证模式
@@ -440,7 +682,7 @@ main() {
     fi
     
     # 安装开发工具包
-    if [ "$download_nuscenes" = true ] || [ "$install_only" = true ]; then
+    if [ "$download_nuscenes_mini" = true ] || [ "$download_nuscenes_full" = true ] || [ "$download_nuscenes_test" = true ] || [ "$install_only" = true ]; then
         install_nuscenes_devkit
     fi
     
@@ -459,8 +701,16 @@ main() {
     fi
     
     # 下载数据集
-    if [ "$download_nuscenes" = true ]; then
+    if [ "$download_nuscenes_mini" = true ]; then
         download_nuscenes_mini
+    fi
+    
+    if [ "$download_nuscenes_full" = true ]; then
+        download_nuscenes_trainval
+    fi
+    
+    if [ "$download_nuscenes_test" = true ]; then
+        download_nuscenes_test
     fi
     
     if [ "$download_waymo" = true ]; then
@@ -482,6 +732,16 @@ main() {
     info "- 日志文件: $LOG_FILE"
     info "- 配置文件: $SCRIPT_DIR/dataset_paths.yaml"
     info "- 数据目录: $BASE_DATA_DIR"
+    info ""
+    info "目录结构 (改进版):"
+    info "├── nuscenes/"
+    info "│   ├── mini_subset/     (子集, ~5GB)"
+    info "│   ├── trainval_full/   (全量, ~350GB)"
+    info "│   └── test_subset/     (测试集, ~30GB)"
+    info "├── waymo/"
+    info "│   └── validation_subset/ (子集, ~20GB)"
+    info "└── argoverse2/"
+    info "    └── motion_forecasting_subset/ (子集, ~8GB)"
     info ""
     info "下一步："
     info "1. 运行验证脚本: python validate_datasets.py"
