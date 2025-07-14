@@ -255,8 +255,8 @@ download_nuscenes_trainval() {
         
         if [ -f "$file" ]; then
             info "文件 $file 已存在，跳过"
-            info "🔍 DEBUG: 文件已存在，success_count++: $((success_count+1))"
             ((success_count++))
+            info "🔍 DEBUG: 文件已存在，success_count现在是: $success_count"
             continue
         fi
         
@@ -277,6 +277,7 @@ download_nuscenes_trainval() {
         fi
         
         info "🔍 DEBUG: 当前success_count = $success_count"
+        info "🔍 DEBUG: 准备处理下一个文件..."
     done
     
     info "🔍 DEBUG: blob文件下载循环结束"
