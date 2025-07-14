@@ -120,13 +120,21 @@ download_nuscenes_mini() {
         return 1
     fi
     
-    info "下载完成，开始解压..."
-    tar -xzf v1.0-mini.tgz
-    
-    # 验证解压结果
-    if [ -d "v1.0-mini" ]; then
-        log "✅ nuScenes Mini 数据集 (子集) 下载和解压成功"
-        info "场景数量: $(find v1.0-mini -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "10")"
+    info "下载完成，开始自动解压..."
+    if tar -xzf v1.0-mini.tgz; then
+        # 验证解压结果
+        if [ -d "v1.0-mini" ]; then
+            log "✅ nuScenes Mini 数据集 (子集) 下载和解压成功"
+            info "场景数量: $(find v1.0-mini -name "scene.json" -exec jq length {} \; 2>/dev/null || echo "10")"
+            
+            # 解压成功后删除压缩包
+            info "解压成功，删除原压缩包 v1.0-mini.tgz..."
+            rm -f v1.0-mini.tgz
+            log "✅ 压缩包已删除，节省存储空间"
+        else
+            error "❌ nuScenes Mini 数据集解压失败"
+            return 1
+        fi
     else
         error "❌ nuScenes Mini 数据集解压失败"
         return 1
@@ -189,6 +197,7 @@ download_nuscenes_trainval() {
             ((success_count++))
         else
             error "❌ $file 下载失败"
+            # 继续下载其他文件，不要因为一个文件失败就停止
         fi
     done
     
@@ -206,31 +215,59 @@ download_nuscenes_trainval() {
             ((success_count++))
         else
             error "❌ $file 下载失败"
+            # 继续下载其他文件，不要因为一个文件失败就停止
         fi
     done
     
     info "下载完成统计: $success_count/$total_files 个文件成功"
     
-    if [ $success_count -eq $total_files ]; then
-        log "✅ nuScenes Trainval 全量数据集下载完成"
-        
-        # 可选解压
-        read -p "是否现在解压所有文件? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            info "开始解压文件..."
+    if [ $success_count -gt 0 ]; then
+        if [ $success_count -eq $total_files ]; then
+            log "✅ nuScenes Trainval 全量数据集下载完成"
+            
+            # 只有当所有文件都下载成功后才进行解压
+            info "所有文件下载完成，开始自动解压..."
+            local extract_success=0
+            local extract_total=$((${#blob_files[@]} + ${#meta_files[@]}))
+            
+            # 解压文件
             for file in "${blob_files[@]}" "${meta_files[@]}"; do
                 if [ -f "$file" ]; then
                     info "解压 $file..."
-                    tar -xzf "$file"
+                    if tar -xzf "$file"; then
+                        info "✅ $file 解压成功"
+                        # 解压成功后删除压缩包
+                        info "删除压缩包 $file..."
+                        rm -f "$file"
+                        ((extract_success++))
+                    else
+                        error "❌ $file 解压失败，保留压缩包"
+                    fi
                 fi
             done
-            log "✅ 解压完成"
+            
+            if [ $extract_success -eq $extract_total ]; then
+                log "✅ 所有文件解压完成，压缩包已删除，节省存储空间"
+            else
+                warn "部分文件解压失败 ($extract_success/$extract_total)"
+            fi
         else
-            info "文件已下载，可稍后手动解压"
+            warn "⚠️  部分文件下载失败 ($success_count/$total_files)"
+            warn "请重新运行脚本以下载缺失的文件"
+            warn "只有当所有文件都下载完成后，脚本才会自动解压"
+            warn "脚本会自动跳过已下载的文件，只下载缺失的部分"
+            
+            info "当前已下载的文件:"
+            for file in "${blob_files[@]}" "${meta_files[@]}"; do
+                if [ -f "$file" ]; then
+                    info "✅ $file"
+                else
+                    info "❌ $file (待下载)"
+                fi
+            done
         fi
     else
-        warn "部分文件下载失败，请检查网络连接后重试"
+        error "❌ 所有文件下载失败，请检查网络连接后重试"
         return 1
     fi
     
@@ -268,15 +305,18 @@ download_nuscenes_test() {
     if wget -c -t 3 -T 300 "$base_url/$test_file"; then
         log "✅ nuScenes Test 数据集下载成功"
         
-        # 可选解压
-        read -p "是否现在解压文件? (y/N): " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            info "开始解压 $test_file..."
-            tar -xzf "$test_file"
-            log "✅ 解压完成"
+        # 自动解压
+        info "开始自动解压 $test_file..."
+        if tar -xzf "$test_file"; then
+            log "✅ nuScenes Test 数据集解压成功"
+            
+            # 解压成功后删除压缩包
+            info "解压成功，删除原压缩包 $test_file..."
+            rm -f "$test_file"
+            log "✅ 压缩包已删除，节省存储空间"
         else
-            info "文件已下载，可稍后手动解压"
+            error "❌ nuScenes Test 数据集解压失败，保留压缩包"
+            return 1
         fi
     else
         error "❌ nuScenes Test 数据集下载失败"
@@ -577,6 +617,10 @@ show_help() {
     echo "数据集类型说明:"
     echo "  子集 (subset): 用于开发和测试的小型数据集"
     echo "  全量 (full):   完整的训练和验证数据集"
+    echo ""
+    echo "解压行为:"
+    echo "  nuScenes:     先完成所有文件下载，再统一解压并删除压缩包"
+    echo "  其他数据集:   保持原始格式，无需解压"
     echo ""
     echo "示例:"
     echo "  $0 --all                        # 下载所有验证数据集 (子集)"
