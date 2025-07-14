@@ -656,6 +656,8 @@ main() {
         case $1 in
             --all)
                 download_nuscenes_mini=true
+                download_nuscenes_full=true
+                download_nuscenes_test=true                
                 download_waymo=true
                 download_argoverse=true
                 shift
