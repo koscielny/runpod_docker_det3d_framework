@@ -7,7 +7,20 @@
 set -e  # 出错时退出
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BASE_DATA_DIR="/data/datasets"
+
+# 智能选择数据目录，优先使用/workspace，然后/data，最后用户目录
+if [ -d "/workspace" ] && [ -w "/workspace" ] 2>/dev/null; then
+    BASE_DATA_DIR="/workspace/datasets"
+elif [ -w "/data" ] 2>/dev/null || mkdir -p "/data" 2>/dev/null; then
+    BASE_DATA_DIR="/data/datasets"
+elif [ -w "/workspace" ] 2>/dev/null || mkdir -p "/workspace" 2>/dev/null; then
+    BASE_DATA_DIR="/workspace/datasets"
+    echo "⚠️  无法访问/data目录，使用/workspace/datasets作为数据目录"
+else
+    BASE_DATA_DIR="$HOME/datasets"
+    echo "⚠️  使用用户主目录 $HOME/datasets 作为数据目录"
+fi
+
 LOG_FILE="$SCRIPT_DIR/download_log_$(date +%Y%m%d_%H%M%S).log"
 
 # 颜色输出
@@ -48,20 +61,55 @@ check_disk_space() {
     local required_gb=$1
     local target_dir=$2
     
-    local available_gb=$(df -BG "$target_dir" | awk 'NR==2 {print $4}' | sed 's/G//')
+    # 创建目标目录（如果不存在）
+    mkdir -p "$target_dir" 2>/dev/null || true
+    
+    # 更健壮的磁盘空间检查
+    local available_gb
+    if command -v df >/dev/null 2>&1; then
+        # 尝试多种df格式
+        available_gb=$(df -BG "$target_dir" 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G//' 2>/dev/null)
+        
+        # 如果第一种方法失败，尝试其他格式
+        if [ -z "$available_gb" ] || ! [[ "$available_gb" =~ ^[0-9]+$ ]]; then
+            available_gb=$(df -h "$target_dir" 2>/dev/null | tail -1 | awk '{print $4}' | sed 's/G.*//' 2>/dev/null)
+        fi
+        
+        # 如果还是失败，跳过检查
+        if [ -z "$available_gb" ] || ! [[ "$available_gb" =~ ^[0-9]+$ ]]; then
+            warn "无法检查磁盘空间，跳过检查"
+            return 0
+        fi
+    else
+        warn "df命令不可用，跳过磁盘空间检查"
+        return 0
+    fi
+    
+    info "检测到可用空间: ${available_gb}GB，需要: ${required_gb}GB"
+    info "🔍 DEBUG: available_gb='$available_gb', required_gb='$required_gb'"
     
     if [ "$available_gb" -lt "$required_gb" ]; then
         error "存储空间不足。需要 ${required_gb}GB，可用 ${available_gb}GB"
+        error "🔍 DEBUG: 存储空间检查失败，返回1"
         return 1
     fi
     
-    info "存储空间检查通过：可用 ${available_gb}GB / 需要 ${required_gb}GB"
+    info "✅ 存储空间检查通过"
+    info "🔍 DEBUG: 存储空间检查成功，返回0"
     return 0
 }
 
 # 创建改进的目录结构 (明确标注子集类型)
 setup_directories() {
     log "创建数据集目录结构..."
+    info "目标数据目录: $BASE_DATA_DIR"
+    
+    # 检查并创建基础目录
+    if ! mkdir -p "$BASE_DATA_DIR" 2>/dev/null; then
+        error "无法创建数据目录: $BASE_DATA_DIR"
+        error "请检查权限或手动创建目录"
+        return 1
+    fi
     
     # nuScenes 目录 (区分子集类型)
     mkdir -p "$BASE_DATA_DIR"/nuscenes/{mini_subset,trainval_full,test_subset,maps,can_bus}
@@ -76,6 +124,7 @@ setup_directories() {
     mkdir -p "$BASE_DATA_DIR"/argoverse2/{motion_forecasting_subset,sensor_subset,lidar_subset,map_change_subset}
     
     log "目录结构创建完成"
+    info "可用空间: $(df -h "$BASE_DATA_DIR" | tail -1 | awk '{print $4}')"
 }
 
 # 下载 nuScenes Mini 数据集 (子集)
@@ -144,21 +193,34 @@ download_nuscenes_mini() {
 # 下载 nuScenes Trainval 全量数据集
 download_nuscenes_trainval() {
     log "开始下载 nuScenes Trainval 全量数据集..."
+    info "🔍 DEBUG: 进入download_nuscenes_trainval函数"
     
     local nuscenes_dir="$BASE_DATA_DIR/nuscenes/trainval_full"
+    info "🔍 DEBUG: 设置目标目录 = $nuscenes_dir"
     
     # 检查存储空间 (350GB)
+    info "🔍 DEBUG: 开始检查存储空间..."
     if ! check_disk_space 350 "$nuscenes_dir"; then
         error "nuScenes 全量数据集需要约350GB存储空间"
         return 1
     fi
+    info "🔍 DEBUG: 存储空间检查完成"
     
-    cd "$nuscenes_dir"
+    info "🔍 DEBUG: 尝试切换到目录: $nuscenes_dir"
+    if cd "$nuscenes_dir"; then
+        info "🔍 DEBUG: 成功切换到目录: $(pwd)"
+    else
+        error "🔍 DEBUG: 无法切换到目录: $nuscenes_dir"
+        return 1
+    fi
     
     info "使用AWS S3直接下载方式（无需注册）..."
+    info "🔍 DEBUG: 开始设置下载参数..."
     
     # AWS S3 直接下载配置
     local base_url="https://motional-nuscenes.s3.amazonaws.com/public/v1.0"
+    info "🔍 DEBUG: base_url = $base_url"
+    
     local blob_files=(
         "v1.0-trainval01_blobs.tgz"
         "v1.0-trainval02_blobs.tgz"
@@ -171,55 +233,86 @@ download_nuscenes_trainval() {
         "v1.0-trainval09_blobs.tgz"
         "v1.0-trainval10_blobs.tgz"
     )
+    info "🔍 DEBUG: blob_files数组长度 = ${#blob_files[@]}"
     
     # 可选：下载metadata和maps
     local meta_files=(
         "v1.0-trainval_meta.tgz"
         "v1.0-maps.tgz"
     )
+    info "🔍 DEBUG: meta_files数组长度 = ${#meta_files[@]}"
     
     info "开始下载 nuScenes Trainval blob文件 (10个文件, 约300GB)..."
     
     local success_count=0
     local total_files=$((${#blob_files[@]} + ${#meta_files[@]}))
+    info "🔍 DEBUG: success_count = $success_count, total_files = $total_files"
     
     # 下载blob文件
+    info "🔍 DEBUG: 开始blob文件下载循环..."
     for file in "${blob_files[@]}"; do
+        info "🔍 DEBUG: 处理文件: $file"
+        
         if [ -f "$file" ]; then
             info "文件 $file 已存在，跳过"
+            info "🔍 DEBUG: 文件已存在，success_count++: $((success_count+1))"
             ((success_count++))
             continue
         fi
+        
+        info "🔍 DEBUG: 文件不存在，准备下载"
+        info "🔍 DEBUG: 构建URL: $base_url/$file"
         
         info "下载 $file (约30GB)..."
+        info "🔍 DEBUG: 执行wget命令..."
+        
         if wget -c -t 3 -T 300 "$base_url/$file"; then
             info "✅ $file 下载成功"
+            info "🔍 DEBUG: 下载成功，success_count++: $((success_count+1))"
             ((success_count++))
         else
             error "❌ $file 下载失败"
+            error "🔍 DEBUG: wget返回错误，但继续下载其他文件"
             # 继续下载其他文件，不要因为一个文件失败就停止
         fi
+        
+        info "🔍 DEBUG: 当前success_count = $success_count"
     done
     
+    info "🔍 DEBUG: blob文件下载循环结束"
+    
     # 下载metadata和maps
+    info "🔍 DEBUG: 开始meta文件下载循环..."
     for file in "${meta_files[@]}"; do
+        info "🔍 DEBUG: 处理meta文件: $file"
+        
         if [ -f "$file" ]; then
             info "文件 $file 已存在，跳过"
+            info "🔍 DEBUG: meta文件已存在，success_count++: $((success_count+1))"
             ((success_count++))
             continue
         fi
         
+        info "🔍 DEBUG: meta文件不存在，准备下载"
         info "下载 $file..."
+        info "🔍 DEBUG: 执行wget meta文件..."
+        
         if wget -c -t 3 -T 60 "$base_url/$file"; then
             info "✅ $file 下载成功"
+            info "🔍 DEBUG: meta下载成功，success_count++: $((success_count+1))"
             ((success_count++))
         else
             error "❌ $file 下载失败"
+            error "🔍 DEBUG: meta文件wget返回错误，但继续"
             # 继续下载其他文件，不要因为一个文件失败就停止
         fi
+        
+        info "🔍 DEBUG: meta文件处理后success_count = $success_count"
     done
     
+    info "🔍 DEBUG: meta文件下载循环结束"
     info "下载完成统计: $success_count/$total_files 个文件成功"
+    info "🔍 DEBUG: 最终统计 - success_count=$success_count, total_files=$total_files"
     
     if [ $success_count -gt 0 ]; then
         if [ $success_count -eq $total_files ]; then
