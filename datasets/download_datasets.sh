@@ -269,7 +269,8 @@ download_nuscenes_trainval() {
                     info "🔍 DEBUG: 文件大小获取失败，设为unknown"
                 fi
                 info "文件 $file 已存在 (大小: $file_size)，跳过"
-                ((success_count++))
+                info "🔍 DEBUG: 准备增加success_count..."
+                success_count=$((success_count + 1))
                 info "🔍 DEBUG: 文件已存在，success_count现在是: $success_count"
                 info "🔍 DEBUG: 执行continue，跳转到下一个文件..."
                 continue
@@ -289,8 +290,8 @@ download_nuscenes_trainval() {
         
         if wget -c -t 3 -T 300 "$base_url/$file"; then
             info "✅ $file 下载成功"
-            info "🔍 DEBUG: 下载成功，success_count++: $((success_count+1))"
-            ((success_count++))
+            success_count=$((success_count + 1))
+            info "🔍 DEBUG: 下载成功，success_count现在是: $success_count"
         else
             error "❌ $file 下载失败"
             error "🔍 DEBUG: wget返回错误，但继续下载其他文件"
@@ -310,8 +311,8 @@ download_nuscenes_trainval() {
         
         if [ -f "$file" ]; then
             info "文件 $file 已存在，跳过"
-            info "🔍 DEBUG: meta文件已存在，success_count++: $((success_count+1))"
-            ((success_count++))
+            success_count=$((success_count + 1))
+            info "🔍 DEBUG: meta文件已存在，success_count现在是: $success_count"
             continue
         fi
         
@@ -321,8 +322,8 @@ download_nuscenes_trainval() {
         
         if wget -c -t 3 -T 60 "$base_url/$file"; then
             info "✅ $file 下载成功"
-            info "🔍 DEBUG: meta下载成功，success_count++: $((success_count+1))"
-            ((success_count++))
+            success_count=$((success_count + 1))
+            info "🔍 DEBUG: meta下载成功，success_count现在是: $success_count"
         else
             error "❌ $file 下载失败"
             error "🔍 DEBUG: meta文件wget返回错误，但继续"
