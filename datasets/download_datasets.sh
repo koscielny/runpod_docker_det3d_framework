@@ -252,15 +252,36 @@ download_nuscenes_trainval() {
     info "🔍 DEBUG: 开始blob文件下载循环..."
     for file in "${blob_files[@]}"; do
         info "🔍 DEBUG: 处理文件: $file"
+        info "🔍 DEBUG: 当前工作目录: $(pwd)"
+        info "🔍 DEBUG: 开始文件存在检查..."
         
-        if [ -f "$file" ]; then
-            info "文件 $file 已存在，跳过"
-            ((success_count++))
-            info "🔍 DEBUG: 文件已存在，success_count现在是: $success_count"
-            continue
+        # 详细的文件检查
+        if [ -e "$file" ]; then
+            info "🔍 DEBUG: 文件/路径存在"
+            if [ -f "$file" ]; then
+                info "🔍 DEBUG: 确认是普通文件"
+                info "🔍 DEBUG: 获取文件大小..."
+                local file_size
+                if file_size=$(ls -lh "$file" 2>/dev/null | awk '{print $5}'); then
+                    info "🔍 DEBUG: 文件大小获取成功: $file_size"
+                else
+                    file_size="unknown"
+                    info "🔍 DEBUG: 文件大小获取失败，设为unknown"
+                fi
+                info "文件 $file 已存在 (大小: $file_size)，跳过"
+                ((success_count++))
+                info "🔍 DEBUG: 文件已存在，success_count现在是: $success_count"
+                info "🔍 DEBUG: 执行continue，跳转到下一个文件..."
+                continue
+                info "🔍 DEBUG: ❌这行不应该被执行！"
+            else
+                info "🔍 DEBUG: 路径存在但不是普通文件（可能是目录）"
+            fi
+        else
+            info "🔍 DEBUG: 文件不存在"
         fi
         
-        info "🔍 DEBUG: 文件不存在，准备下载"
+        info "🔍 DEBUG: 文件检查完成，准备下载..."
         info "🔍 DEBUG: 构建URL: $base_url/$file"
         
         info "下载 $file (约30GB)..."
@@ -749,7 +770,7 @@ main() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --all)
-                download_nuscenes_mini=true
+                # download_nuscenes_mini=true
                 download_nuscenes_full=true
                 download_nuscenes_test=true                
                 download_waymo=true
