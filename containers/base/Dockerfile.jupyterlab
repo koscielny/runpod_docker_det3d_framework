@@ -16,6 +16,12 @@ RUN pip install --no-cache-dir \
     numpy \
     pillow
 
+# 生成Jupyter配置
+RUN jupyter lab --generate-config
+
+# 创建日志目录
+RUN mkdir -p /var/log
+
 # 暴露SSH和Jupyter端口
 EXPOSE 22 8888
 
