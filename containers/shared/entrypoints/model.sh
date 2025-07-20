@@ -16,10 +16,39 @@ source "$SHARED_ENTRYPOINTS_DIR/utils.sh"
 call_base_services() {
     if [ -f "$BASE_ENTRYPOINTS_DIR/main.sh" ]; then
         print_step "调用基础服务启动脚本..."
-        source "$BASE_ENTRYPOINTS_DIR/main.sh"
         
-        # 只启动服务，不进入守护进程
-        start_base_services
+        # 加载基础服务模块，但不执行主函数
+        source "$BASE_ENTRYPOINTS_DIR/ssh.sh"
+        
+        # 动态加载Jupyter服务（如果可用）
+        if [ -f "$BASE_ENTRYPOINTS_DIR/jupyter.sh" ] && command -v jupyter >/dev/null 2>&1; then
+            source "$BASE_ENTRYPOINTS_DIR/jupyter.sh"
+            ENABLE_JUPYTER=true
+        else
+            ENABLE_JUPYTER=false
+        fi
+        
+        # 启动SSH服务
+        start_ssh_service
+        
+        # 启动Jupyter服务（如果可用）
+        if [ "$ENABLE_JUPYTER" = true ]; then
+            start_jupyter_service
+        fi
+        
+        # 显示系统信息
+        show_system_info
+        
+        # 运行依赖检查
+        run_dependency_check
+        
+        # 显示内存状态
+        show_memory_info
+        
+        # 创建便捷别名
+        create_aliases
+        
+        print_success "基础服务启动完成"
     else
         print_warning "未找到基础服务脚本，跳过基础服务启动"
     fi

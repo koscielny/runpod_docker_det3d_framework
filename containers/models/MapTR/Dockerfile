@@ -12,8 +12,10 @@ RUN pip install --no-cache-dir -r /tmp/maptr_requirements.txt
 # 复制模型特定文件
 COPY containers/models/MapTR/inference.py /app/MapTR/inference.py
 
-# 使用新的模型入口脚本（继承自基础镜像）
-# entrypoint脚本已在基础镜像中配置，无需重复复制
+# 确保entrypoint脚本存在（防止基础镜像构建问题）
+COPY containers/base/entrypoints/ /app/entrypoints/
+COPY containers/shared/entrypoints/ /app/shared/entrypoints/
+RUN chmod +x /app/entrypoints/*.sh /app/shared/entrypoints/*.sh
 
 # 复制核心配置文件
 COPY config/ /app/config/
@@ -35,9 +37,6 @@ COPY tests/test_results/test_data/ /app/test_data/
 
 # 复制文档目录
 COPY docs/ /app/docs/
-
-# 设置权限
-RUN chmod +x /app/entrypoint.sh
 
 # 创建便捷别名
 RUN echo 'alias maptr="cd /app/MapTR && python inference.py"' >> /root/.bashrc
