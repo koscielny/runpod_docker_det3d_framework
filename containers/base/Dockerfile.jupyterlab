@@ -29,9 +29,11 @@ RUN echo "c.ServerApp.ip = '0.0.0.0'" >> /root/.jupyter/jupyter_lab_config.py &&
     echo "c.ServerApp.allow_origin = '*'" >> /root/.jupyter/jupyter_lab_config.py && \
     echo "c.ServerApp.disable_check_xsrf = True" >> /root/.jupyter/jupyter_lab_config.py
 
-# 复制共享的启动脚本
-COPY containers/shared/entrypoint_optimized.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# 复制分层启动脚本
+COPY containers/shared/entrypoint_base.sh /app/shared/entrypoint_base.sh
+COPY containers/shared/entrypoint_jupyter.sh /app/shared/entrypoint_jupyter.sh
+COPY containers/shared/entrypoint_model.sh /entrypoint.sh
+RUN chmod +x /app/shared/entrypoint_base.sh /app/shared/entrypoint_jupyter.sh /entrypoint.sh
 
 # 创建日志目录
 RUN mkdir -p /var/log
