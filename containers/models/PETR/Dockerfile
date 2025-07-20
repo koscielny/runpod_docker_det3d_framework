@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir -r /tmp/petr_requirements.txt
 # 复制模型特定文件
 COPY containers/models/PETR/inference.py /app/PETR/inference.py
 
-# 复制共享脚本
-COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
+# 使用新的模型入口脚本（继承自基础镜像）
+# entrypoint脚本已在基础镜像中配置，无需重复复制
 
 # 复制核心配置文件
 COPY config/ /app/config/
@@ -36,8 +36,7 @@ COPY tests/test_results/test_data/ /app/test_data/
 # 复制文档目录
 COPY docs/ /app/docs/
 
-# 设置权限
-RUN chmod +x /app/entrypoint.sh
+# entrypoint权限已在基础镜像中设置
 
 # 创建便捷别名
 RUN echo 'alias petr="cd /app/PETR && python inference.py"' >> /root/.bashrc
@@ -49,4 +48,4 @@ WORKDIR /app/PETR
 EXPOSE 22
 
 # 设置入口点
-ENTRYPOINT ["/app/entrypoint.sh"]
+ENTRYPOINT ["/app/shared/entrypoints/model.sh"]

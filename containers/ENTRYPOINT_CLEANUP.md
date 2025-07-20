@@ -58,18 +58,23 @@ shared/entrypoints/
 ENTRYPOINT ["/app/entrypoints/main.sh"]
 ```
 
-### **模型镜像 (VAD, MapTR等)**
+### **模型镜像 (VAD, MapTR等) - 已迁移 ✅**
 ```dockerfile
-# 选择之一：
-ENTRYPOINT ["/app/entrypoints/main.sh"]           # 基础服务入口
-# 或：
-ENTRYPOINT ["/app/shared/entrypoints/model.sh"]   # 模型应用入口 (推荐)
+# 统一使用新的模型应用入口
+ENTRYPOINT ["/app/shared/entrypoints/model.sh"]
 ```
 
-### **向后兼容 (现有部署)**
+### **迁移状态**
+- ✅ **VAD**: 已迁移到新entrypoint
+- ✅ **MapTR**: 已迁移到新entrypoint  
+- ✅ **PETR**: 已迁移到新entrypoint
+- ✅ **StreamPETR**: 已迁移到新entrypoint
+- ✅ **TopoMLP**: 已迁移到新entrypoint
+
+### **向后兼容 (仅保留)**
 ```dockerfile
-# 继续使用第一代
-ENTRYPOINT ["/entrypoint.sh"]  # 即 entrypoint_optimized.sh
+# 第一代脚本仅用于向后兼容
+entrypoint_optimized.sh
 ```
 
 ## 🗑️ 清理建议

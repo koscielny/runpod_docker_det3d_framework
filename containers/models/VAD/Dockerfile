@@ -14,8 +14,8 @@ RUN pip install --no-cache-dir -r /tmp/vad_requirements.txt
 # 复制模型特定文件
 COPY containers/models/VAD/inference.py /app/VAD/inference.py
 
-# 复制共享脚本
-COPY containers/shared/entrypoint_optimized.sh /app/entrypoint.sh
+# 使用新的模型入口脚本（继承自基础镜像）
+# entrypoint脚本已在基础镜像中配置，无需重复复制
 
 # 复制核心配置文件
 COPY config/ /app/config/
@@ -50,5 +50,5 @@ WORKDIR /app/VAD
 # 暴露SSH端口
 EXPOSE 22
 
-# 设置入口点
-ENTRYPOINT ["/app/entrypoint.sh"]
+# 使用新的模型应用入口脚本
+ENTRYPOINT ["/app/shared/entrypoints/model.sh"]
