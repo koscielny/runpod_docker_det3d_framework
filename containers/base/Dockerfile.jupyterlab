@@ -19,6 +19,20 @@ RUN pip install --no-cache-dir \
 # 生成Jupyter配置
 RUN jupyter lab --generate-config
 
+# 配置Jupyter Lab无密码访问
+RUN echo "c.ServerApp.ip = '0.0.0.0'" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.port = 8888" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.open_browser = False" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.allow_root = True" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.token = ''" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.password = ''" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.allow_origin = '*'" >> /root/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.disable_check_xsrf = True" >> /root/.jupyter/jupyter_lab_config.py
+
+# 复制共享的启动脚本
+COPY containers/shared/entrypoint_optimized.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # 创建日志目录
 RUN mkdir -p /var/log
 
@@ -27,3 +41,6 @@ EXPOSE 22 8888
 
 # 设置工作目录
 WORKDIR /app
+
+# 使用优化的启动脚本
+ENTRYPOINT ["/entrypoint.sh"]

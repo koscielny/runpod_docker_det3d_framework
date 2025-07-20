@@ -52,8 +52,9 @@ if [ ! -f "$FIRST_RUN_FLAG" ]; then
     # 启动Jupyter Lab
     echo "📋 启动Jupyter Lab..."
     nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
-        --token='' --password='' --NotebookApp.allow_origin='*' \
-        --NotebookApp.disable_check_xsrf=True --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+        --ServerApp.token='' --ServerApp.password='' \
+        --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
+        --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
     
     # 等待Jupyter启动
     sleep 3
@@ -108,8 +109,9 @@ else
     if ! pgrep -f "jupyter-lab" > /dev/null; then
         echo "🔄 重启Jupyter Lab..."
         nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
-            --token='' --password='' --NotebookApp.allow_origin='*' \
-            --NotebookApp.disable_check_xsrf=True --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+            --ServerApp.token='' --ServerApp.password='' \
+            --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
+            --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
     fi
 fi
 
@@ -134,8 +136,9 @@ else
         if ! pgrep -f "jupyter-lab" > /dev/null; then
             echo "⚠️  $(date): Jupyter Lab异常，重新启动..."
             nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
-                --token='' --password='' --NotebookApp.allow_origin='*' \
-                --NotebookApp.disable_check_xsrf=True --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+                --ServerApp.token='' --ServerApp.password='' \
+                --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
+                --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
         fi
     done
 fi
