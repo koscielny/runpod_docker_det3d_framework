@@ -106,7 +106,7 @@ build_base_image() {
     
     print_step "构建 $image 基础镜像"
     
-    local dockerfile_path="containers/base/Dockerfile.$image"
+    local dockerfile_path="./Dockerfile.$image"
     local image_name=$(get_image_name "$image" "$tag")
     
     if [ ! -f "$dockerfile_path" ]; then
