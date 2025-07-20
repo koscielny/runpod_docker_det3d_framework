@@ -91,11 +91,13 @@ python scripts/generate_camera_video.py \
 
 # 缩放图像并添加标注
 python scripts/generate_camera_video.py \
-    --dataroot /data/nuscenes \
+    --dataroot /workspace/data/nuscenes \
     --scene scene-0001 \
     --camera CAM_FRONT \
     --resize 0.5 \
-    --annotations
+    --quality high \
+    --annotations \
+    --output /workspace/data/nuscenes/outputs/viz_raw/scene-0001-cam_front.mp4
 ```
 
 ### 3. 生成LiDAR BEV视频 (generate_lidar_bev_video.py)

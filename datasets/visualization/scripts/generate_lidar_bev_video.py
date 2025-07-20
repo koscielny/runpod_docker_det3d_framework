@@ -19,7 +19,7 @@ from pyquaternion import Quaternion
 def generate_lidar_bev_video(dataroot, scene_name, output_path, 
                            version='v1.0-trainval', fps=10,
                            bev_size=(800, 800), bev_range=50.0,
-                           colormap='intensity', point_size=1):
+                           colormap='height', point_size=1):
     """
     生成LiDAR BEV视频
     

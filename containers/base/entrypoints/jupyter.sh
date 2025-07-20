@@ -30,7 +30,7 @@ start_jupyter_service() {
     nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
         --ServerApp.token='' --ServerApp.password='' \
         --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
-        --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+        --notebook-dir=/ > /var/log/jupyter.log 2>&1 &
     
     # 等待Jupyter启动
     sleep 3
@@ -56,7 +56,7 @@ check_jupyter_service() {
         nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
             --ServerApp.token='' --ServerApp.password='' \
             --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
-            --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+            --notebook-dir=/ > /var/log/jupyter.log 2>&1 &
     fi
 }
 

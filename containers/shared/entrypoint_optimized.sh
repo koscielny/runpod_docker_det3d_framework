@@ -54,7 +54,7 @@ if [ ! -f "$FIRST_RUN_FLAG" ]; then
     nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
         --ServerApp.token='' --ServerApp.password='' \
         --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
-        --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+        --notebook-dir=/ > /var/log/jupyter.log 2>&1 &
     
     # 等待Jupyter启动
     sleep 3
@@ -111,7 +111,7 @@ else
         nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
             --ServerApp.token='' --ServerApp.password='' \
             --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
-            --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+            --notebook-dir=/ > /var/log/jupyter.log 2>&1 &
     fi
 fi
 
@@ -138,7 +138,7 @@ else
             nohup jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root \
                 --ServerApp.token='' --ServerApp.password='' \
                 --ServerApp.allow_origin='*' --ServerApp.disable_check_xsrf=True \
-                --notebook-dir=/app > /var/log/jupyter.log 2>&1 &
+                --notebook-dir=/ > /var/log/jupyter.log 2>&1 &
         fi
     done
 fi
